@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<root>
+
+	<individuals>
+		<individual id="individual_1" locality="A" lat="0" lon="0"/>
+		<individual id="individual_2" locality="A" lat="0" lon="1"/>
+		<individual id="individual_3" locality="A" lat="1" lon="1"/>
+		<individual id="individual_4" locality="A" lat="1" lon="0"/>
+
+		<individual id="individual_5" locality="A" lat="2" lon="0"/>
+		<individual id="individual_6" locality="A" lat="2" lon="2"/>
+		<individual id="individual_7" locality="A" lat="0" lon="2"/>
+
+		<individual id="individual_8" locality="A" lat="-2" lon="-2"/>
+		<individual id="individual_9" locality="A" lat="-2" lon="2"/>
+		<individual id="individual_10" locality="A" lat="2" lon="-2"/>
+		<individual id="individual_11" locality="A" lat="2" lon="2"/>
+		<individual id="individual_12"/>
+		<individual id="individual_13" locality="B" lat="42" lon="42"/>
+	</individuals>
+
+	<spartitions>
+		<spartition label="1">
+			<subsets>
+				<subset label="1">
+					<individual ref="individual_1"/>
+					<individual ref="individual_2"/>
+					<individual ref="individual_3"/>
+					<individual ref="individual_4"/>
+				</subset>
+				<subset label="2">
+					<individual ref="individual_5"/>
+					<individual ref="individual_6"/>
+					<individual ref="individual_7"/>
+				</subset>
+				<subset label="3">
+					<individual ref="individual_8"/>
+					<individual ref="individual_9"/>
+					<individual ref="individual_10"/>
+					<individual ref="individual_11"/>
+					<individual ref="individual_12"/>
+				</subset>
+				<subset label="4">
+					<individual ref="individual_13"/>
+				</subset>
+			</subsets>
+		</spartition>
+
+	</spartitions>
+
+</root>

@@ -1,0 +1,2 @@
+itaxotools-spart-parser @ git+https://github.com/iTaxoTools/SpartParser.git@main
+shapely
