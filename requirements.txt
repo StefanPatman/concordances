@@ -1,3 +1,4 @@
 itaxotools-spart-parser @ git+https://github.com/iTaxoTools/SpartParser.git@main
+itaxotools-spart-parser @ git+https://github.com/iTaxoTools/haplostats.git@main
 shapely
 geopy

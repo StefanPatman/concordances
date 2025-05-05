@@ -1,7 +1,10 @@
 from itaxotools.spart_parser import Spart
+from itaxotools.taxi2.sequences import Sequences, SequenceHandler
+from itaxotools.haplostats import HaploStats
 from shapely import Polygon, MultiPoint
 from geopy.distance import distance
 from itertools import combinations, product
+from collections import defaultdict
 
 
 def convex_hull(individuals: list[str], latlons: dict[str, tuple[float, float]]) -> Polygon:
@@ -123,10 +126,93 @@ def process_coocurrences(spart: Spart, threshold_kilometers: float):
             )
 
 
+def is_id_allele_of_individual(id: str, individual: str) -> bool:
+    if not id.startswith(individual):
+        return False
+    if len(id) != len(individual) + 2:
+        return False
+    return True
+
+
+def process_haplostats(spart: Spart, sequences: Sequences):
+
+    for spartition in spart.getSpartitions():
+        stats = HaploStats()
+        stats.set_subset_labels(
+            subset_a="subset_a",
+            subset_b="subset_b",
+            subsets="subsets",
+        )
+
+        subset_sequences = defaultdict(list)
+        numbers = {}
+
+        for subset in spart.getSpartitionSubsets(spartition):
+            individuals = spart.getSubsetIndividuals(spartition, subset)
+            for individual in individuals:
+                for sequence in sequences:
+                    if is_id_allele_of_individual(sequence.id, individual):
+                        subset_sequences[subset].append(sequence.seq)
+            numbers[subset] = len(subset_sequences[subset])
+
+        for subset, sequences in subset_sequences.items():
+            if sequences:
+                stats.add(subset, sequences)
+
+        kwargs = dict(
+            evidenceType="Molecular",
+            evidenceDataType="Ordinal",
+            evidenceDiscriminationType="Boolean",
+            evidenceDiscriminationDataType="Boolean",
+        )
+        spart.addConcordance(spartition, "haplotypes shared between subsets", **kwargs)
+
+        data = stats.get_haplotypes_shared_between_subsets(include_empty=True)
+        for chunk in data:
+            subset_a: str = chunk["subset_a"]
+            subset_b: str = chunk["subset_b"]
+            common: dict[str, int] = chunk["common"]
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel="haplotypes shared between subsets",
+                subsetnumberA=subset_a,
+                subsetnumberB=subset_b,
+                NIndividualsSubsetA=numbers[subset_a],
+                NIndividualsSubsetB=numbers[subset_b],
+                concordanceSupport=bool(common),
+            )
+
+        kwargs = dict(
+            evidenceType="Molecular",
+            evidenceDataType="Ordinal",
+            evidenceDiscriminationType="Boolean",
+            evidenceDiscriminationDataType="Boolean",
+        )
+        spart.addConcordance(spartition, "FFRs shared between subsets", **kwargs)
+
+        data = stats.get_fields_for_recombination_shared_between_subsets(include_empty=True)
+        for chunk in data:
+            subset_a: str = chunk["subset_a"]
+            subset_b: str = chunk["subset_b"]
+            common: dict[str, int] = chunk["common"]
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel="FFRs shared between subsets",
+                subsetnumberA=subset_a,
+                subsetnumberB=subset_b,
+                NIndividualsSubsetA=numbers[subset_a],
+                NIndividualsSubsetB=numbers[subset_b],
+                concordanceSupport=bool(common),
+                # concordanceSupport=any(v > 0 for v in common.values()),
+            )
+
+
 def main():
     spart = Spart.fromXML("sample.xml")
+    sequences = Sequences.fromPath("sample.fas", SequenceHandler.Fasta)
     process_polygons(spart)
     process_coocurrences(spart, 5.0)
+    process_haplostats(spart, sequences)
     spart.toXML("out.xml")
 
 
