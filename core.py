@@ -1,10 +1,14 @@
 from itaxotools.spart_parser import Spart
 from itaxotools.taxi2.sequences import Sequences, SequenceHandler
+from itaxotools.taxi2.handlers import FileHandler
 from itaxotools.haplostats import HaploStats
 from shapely import Polygon, MultiPoint
 from geopy.distance import distance
 from itertools import combinations, product
 from collections import defaultdict
+from pathlib import Path
+from scipy.stats import mannwhitneyu
+import math
 
 
 def convex_hull(individuals: list[str], latlons: dict[str, tuple[float, float]]) -> Polygon:
@@ -203,16 +207,107 @@ def process_haplostats(spart: Spart, sequences: Sequences):
                 NIndividualsSubsetA=numbers[subset_a],
                 NIndividualsSubsetB=numbers[subset_b],
                 concordanceSupport=bool(common),
-                # concordanceSupport=any(v > 0 for v in common.values()),
             )
+
+
+def read_morphometrics(path: Path) -> list[tuple[str, ...]]:
+    data: dict[str, dict[str, float]] = defaultdict(dict)
+    with FileHandler.Tabfile(path, has_headers=True, get_all_columns=True) as file:
+        for row in file:
+            id = row[0]
+            for header, value in zip(file.headers[1:], row[1:]):
+                data[header][id] = float(value)
+    return data
+
+
+def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, float]):
+    for spartition in spart.getSpartitions():
+
+        subset_data = defaultdict(list)
+        numbers = {}
+
+        for subset in spart.getSpartitionSubsets(spartition):
+            individuals = spart.getSubsetIndividuals(spartition, subset)
+            for individual in individuals:
+                if individual in individual_data:
+                    subset_data[subset].append(individual_data[individual])
+            numbers[subset] = len(subset_data[subset])
+
+        concordance_label_u = f"Mann-Whitney U-stat for {label}"
+        concordance_label_p = f"Mann-Whitney P-value for {label}"
+        concordance_label_b = f"Mann-Whitney P-value for {label} (Bonferroni corrected)"
+
+        kwargs = dict(
+            evidenceType="Morphology",
+            evidenceDataType="Continuous",
+            evidenceDiscriminationType="Other",
+            evidenceDiscriminationDataType="Continuous",
+        )
+        spart.addConcordance(spartition, concordance_label_u, **kwargs)
+
+        kwargs = dict(
+            evidenceType="Morphology",
+            evidenceDataType="Continuous",
+            evidenceDiscriminationType="Significance",
+            evidenceDiscriminationDataType="Percentage",
+        )
+        spart.addConcordance(spartition, concordance_label_p, **kwargs)
+        spart.addConcordance(spartition, concordance_label_b, **kwargs)
+
+        k = math.comb(len(subset_data), 2)
+
+        for subset_a, subset_b in combinations(subset_data.keys(), 2):
+
+            if len(subset_data[subset_a]) < 2:
+                continue
+            if len(subset_data[subset_b]) < 2:
+                continue
+
+            u, p = mannwhitneyu(subset_data[subset_a], subset_data[subset_b], alternative="two-sided")
+
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel=concordance_label_u,
+                subsetnumberA=subset_a,
+                subsetnumberB=subset_b,
+                NIndividualsSubsetA=numbers[subset_a],
+                NIndividualsSubsetB=numbers[subset_b],
+                concordanceSupport=u,
+            )
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel=concordance_label_p,
+                subsetnumberA=subset_a,
+                subsetnumberB=subset_b,
+                NIndividualsSubsetA=numbers[subset_a],
+                NIndividualsSubsetB=numbers[subset_b],
+                concordanceSupport=100 * p,
+            )
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel=concordance_label_b,
+                subsetnumberA=subset_a,
+                subsetnumberB=subset_b,
+                NIndividualsSubsetA=numbers[subset_a],
+                NIndividualsSubsetB=numbers[subset_b],
+                concordanceSupport=100 * p/k,
+            )
+
+
+
+def process_morphometrics_multiple(spart: Spart, data: dict[str, dict]):
+    for header in data:
+        process_morphometrics(spart, header, data[header])
 
 
 def main():
     spart = Spart.fromXML("sample.xml")
     sequences = Sequences.fromPath("sample.fas", SequenceHandler.Fasta)
+    morphometrics = read_morphometrics("sample.tab")
     process_polygons(spart)
     process_coocurrences(spart, 5.0)
     process_haplostats(spart, sequences)
+    process_morphometrics_multiple(spart, morphometrics)
     spart.toXML("out.xml")
 
 
