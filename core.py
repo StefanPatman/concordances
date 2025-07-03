@@ -233,6 +233,7 @@ def compute_range_gap(a: list[float], b: list[float]) -> float:
 
 
 def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, float]):
+
     for spartition in spart.getSpartitions():
 
         subset_data = defaultdict(list)
@@ -262,7 +263,7 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
             evidenceType="Morphology",
             evidenceDataType="Continuous",
             evidenceDiscriminationType="Significance",
-            evidenceDiscriminationDataType="Percentage",
+            evidenceDiscriminationDataType="Proportion",
         )
         spart.addConcordance(spartition, concordance_label_p, **kwargs)
         spart.addConcordance(spartition, concordance_label_b, **kwargs)
@@ -303,7 +304,7 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
                 subsetnumberB=subset_b,
                 NIndividualsSubsetA=numbers[subset_a],
                 NIndividualsSubsetB=numbers[subset_b],
-                concordanceSupport=100 * p,
+                concordanceSupport=p,
             )
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
@@ -312,7 +313,7 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
                 subsetnumberB=subset_b,
                 NIndividualsSubsetA=numbers[subset_a],
                 NIndividualsSubsetB=numbers[subset_b],
-                concordanceSupport=100 * p/k,
+                concordanceSupport=p * k,
             )
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
