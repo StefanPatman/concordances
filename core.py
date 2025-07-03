@@ -1,6 +1,7 @@
 from itaxotools.spart_parser import Spart
 from itaxotools.taxi2.sequences import Sequences, SequenceHandler
 from itaxotools.taxi2.handlers import FileHandler
+from itaxotools.taxi2.files import is_tabfile
 from itaxotools.haplostats import HaploStats
 from shapely import Polygon, MultiPoint
 from geopy.distance import distance
@@ -16,10 +17,19 @@ def convex_hull(individuals: list[str], latlons: dict[str, tuple[float, float]])
     return multipoint.convex_hull
 
 
-def process_polygons(spart: Spart):
+def read_latlons_from_spart(path: Path) -> dict[str, tuple[float, float]]:
+    spart = Spart.fromXML(path)
     latlons = {individual: spart.getIndividualLatLon(individual) for individual in spart.getIndividuals()}
     latlons = {k: v for k, v in latlons.items() if v is not None}
+    return latlons
 
+
+def read_latlons_from_tabfile(path: Path) -> dict[str, tuple[float, float]]:
+    with FileHandler.Tabfile(path, has_headers=True, get_all_columns=True) as file:
+        return {id: (lat, lon) for id, lat, lon in file}
+
+
+def process_polygons(spart: Spart, latlons: dict[str, tuple[float, float]]):
     for spartition in spart.getSpartitions():
         hulls = {}
         numbers = {}
@@ -73,10 +83,7 @@ def process_polygons(spart: Spart):
             )
 
 
-def process_coocurrences(spart: Spart, threshold_kilometers: float):
-    latlons = {individual: spart.getIndividualLatLon(individual) for individual in spart.getIndividuals()}
-    latlons = {k: v for k, v in latlons.items() if v is not None}
-
+def process_coocurrences(spart: Spart, latlons: dict[str, tuple[float, float]], threshold_kilometers: float):
     for spartition in spart.getSpartitions():
         points = {}
         numbers = {}
@@ -210,7 +217,7 @@ def process_haplostats(spart: Spart, sequences: Sequences):
             )
 
 
-def read_morphometrics(path: Path) -> list[tuple[str, ...]]:
+def read_morphometrics(path: Path) -> dict[str, dict[str, float]]:
     data: dict[str, dict[str, float]] = defaultdict(dict)
     with FileHandler.Tabfile(path, has_headers=True, get_all_columns=True) as file:
         for row in file:
@@ -327,9 +334,11 @@ def process_morphometrics_multiple(spart: Spart, data: dict[str, dict]):
 def main():
     spart = Spart.fromXML("sample.xml")
     sequences = Sequences.fromPath("sample.fas", SequenceHandler.Fasta)
-    morphometrics = read_morphometrics("sample.tab")
-    process_polygons(spart)
-    process_coocurrences(spart, 5.0)
+    # latlons = read_latlons_from_spart("sample.xml")
+    latlons = read_latlons_from_tabfile("sample_latlons.tab")
+    morphometrics = read_morphometrics("sample_morphometrics.tab")
+    process_polygons(spart, latlons)
+    process_coocurrences(spart, latlons, 5.0)
     process_haplostats(spart, sequences)
     process_morphometrics_multiple(spart, morphometrics)
     spart.toXML("out.xml")
