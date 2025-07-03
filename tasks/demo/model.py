@@ -9,9 +9,11 @@ from . import process, title
 class Model(TaskModel):
     task_name = title
 
-    spart_path = Property(Path, Path())
-    sequence_path = Property(Path, Path())
+    subset_path = Property(Path, Path())
     output_path = Property(Path, Path())
+    coord_path = Property(Path, Path())
+    sequence_path = Property(Path, Path())
+    morphometrics_path = Property(Path, Path())
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -21,9 +23,11 @@ class Model(TaskModel):
         self.subtask_init = SubtaskModel(self, bind_busy=False)
 
         for handle in [
-            self.properties.spart_path,
-            self.properties.sequence_path,
+            self.properties.subset_path,
             self.properties.output_path,
+            self.properties.coord_path,
+            self.properties.sequence_path,
+            self.properties.morphometrics_path,
         ]:
             self.binder.bind(handle, self.checkReady)
         self.checkReady()
@@ -31,20 +35,32 @@ class Model(TaskModel):
         self.subtask_init.start(process.initialize)
 
     def isReady(self):
-        if self.spart_path == Path():
-            return False
-        if self.sequence_path == Path():
+        if self.subset_path == Path():
             return False
         if self.output_path == Path():
             return False
+        if not any((
+            self.coord_path != Path(),
+            self.sequence_path != Path(),
+            self.morphometrics_path != Path(),
+        )):
+            return False
         return True
+
+    @staticmethod
+    def path_or_none(path: Path) -> Path | None:
+        if path == Path():
+            return None
+        return path
 
     def start(self):
         super().start()
 
         self.exec(
             process.execute,
-            spart_path=self.spart_path,
-            sequence_path=self.sequence_path,
+            subset_path=self.subset_path,
             output_path=self.output_path,
+            coord_path=self.path_or_none(self.coord_path),
+            sequence_path=self.path_or_none(self.sequence_path),
+            morphometrics_path=self.path_or_none(self.morphometrics_path),
         )

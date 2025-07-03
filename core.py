@@ -217,7 +217,7 @@ def process_haplostats(spart: Spart, sequences: Sequences):
             )
 
 
-def read_morphometrics(path: Path) -> dict[str, dict[str, float]]:
+def read_morphometrics_from_tabfile(path: Path) -> dict[str, dict[str, float]]:
     data: dict[str, dict[str, float]] = defaultdict(dict)
     with FileHandler.Tabfile(path, has_headers=True, get_all_columns=True) as file:
         for row in file:
@@ -333,10 +333,10 @@ def process_morphometrics_multiple(spart: Spart, data: dict[str, dict]):
 
 def main():
     spart = Spart.fromXML("sample.xml")
-    sequences = Sequences.fromPath("sample.fas", SequenceHandler.Fasta)
+    sequences = Sequences.fromPath("sample_sequences.fas", SequenceHandler.Fasta)
     # latlons = read_latlons_from_spart("sample.xml")
     latlons = read_latlons_from_tabfile("sample_latlons.tab")
-    morphometrics = read_morphometrics("sample_morphometrics.tab")
+    morphometrics = read_morphometrics_from_tabfile("sample_morphometrics.tab")
     process_polygons(spart, latlons)
     process_coocurrences(spart, latlons, 5.0)
     process_haplostats(spart, sequences)

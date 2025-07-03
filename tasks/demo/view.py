@@ -50,13 +50,17 @@ class View(BlastTaskView):
         self.cards = AttrDict()
         self.cards.title = GraphicTitleCard(title, long_description, pixmap_medium.resource, self)
         self.cards.progress = ProgressCard(self)
-        self.cards.spart = PathFileSelector("\u25C0  Spart file", self)
-        self.cards.sequences = PathFileSelector("\u25C0  Sequence file", self)
-        self.cards.output = PathFileOutSelector("\u25C0  Output file", self)
+        self.cards.subsets = PathFileSelector("\u25C0  Subsets", self)
+        self.cards.output = PathFileOutSelector("\u25B6  Output", self)
+        self.cards.coords = PathFileSelector("\u25E6  Coordinates", self)
+        self.cards.sequences = PathFileSelector("\u25E6  Sequences", self)
+        self.cards.morphometrics = PathFileSelector("\u25E6  Morphometrics", self)
 
-        self.cards.spart.set_placeholder_text("SPART XML file containing latlon coordinates")
+        self.cards.subsets.set_placeholder_text("SPART XML file describing all subsets")
+        self.cards.output.set_placeholder_text("Resulting SPART XML file with concordance information")
+        self.cards.coords.set_placeholder_text("SPART XML or Tabfile containing lat/lon coordinates")
         self.cards.sequences.set_placeholder_text("Phased FASTA file containing allele sequences")
-        self.cards.output.set_placeholder_text("Resulting SPART XML file containing concordance information")
+        self.cards.morphometrics.set_placeholder_text("Tabfile containing morphometrics")
 
         layout = QtWidgets.QVBoxLayout()
         for card in self.cards:
@@ -77,14 +81,20 @@ class View(BlastTaskView):
         self.binder.bind(object.properties.name, self.cards.title.setTitle)
         self.binder.bind(object.properties.busy, self.cards.progress.setVisible)
 
-        self.binder.bind(object.properties.spart_path, self.cards.spart.set_path)
-        self.binder.bind(self.cards.spart.selectedPath, object.properties.spart_path)
+        self.binder.bind(object.properties.subset_path, self.cards.subsets.set_path)
+        self.binder.bind(self.cards.subsets.selectedPath, object.properties.subset_path)
+
+        self.binder.bind(object.properties.output_path, self.cards.output.set_path)
+        self.binder.bind(self.cards.output.selectedPath, object.properties.output_path)
+
+        self.binder.bind(object.properties.coord_path, self.cards.coords.set_path)
+        self.binder.bind(self.cards.coords.selectedPath, object.properties.coord_path)
 
         self.binder.bind(object.properties.sequence_path, self.cards.sequences.set_path)
         self.binder.bind(self.cards.sequences.selectedPath, object.properties.sequence_path)
 
-        self.binder.bind(object.properties.output_path, self.cards.output.set_path)
-        self.binder.bind(self.cards.output.selectedPath, object.properties.output_path)
+        self.binder.bind(object.properties.morphometrics_path, self.cards.morphometrics.set_path)
+        self.binder.bind(self.cards.morphometrics.selectedPath, object.properties.morphometrics_path)
 
         self.binder.bind(object.properties.editable, self.setEditable)
 
