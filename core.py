@@ -220,6 +220,11 @@ def read_morphometrics(path: Path) -> list[tuple[str, ...]]:
     return data
 
 
+def compute_range_gap(a: list[float], b: list[float]) -> float:
+    """Returns negative value for overlap"""
+    return max(min(a), min(b)) - min(max(a), max(b))
+
+
 def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, float]):
     for spartition in spart.getSpartitions():
 
@@ -236,6 +241,7 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
         concordance_label_u = f"Mann-Whitney U-stat for {label}"
         concordance_label_p = f"Mann-Whitney P-value for {label}"
         concordance_label_b = f"Mann-Whitney P-value for {label} (Bonferroni corrected)"
+        concordance_label_g = f"Measurement gap for {label}"
 
         kwargs = dict(
             evidenceType="Morphology",
@@ -254,6 +260,14 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
         spart.addConcordance(spartition, concordance_label_p, **kwargs)
         spart.addConcordance(spartition, concordance_label_b, **kwargs)
 
+        kwargs = dict(
+            evidenceType="Morphology",
+            evidenceDataType="Continuous",
+            evidenceDiscriminationType="Gap",
+            evidenceDiscriminationDataType="Continuous",
+        )
+        spart.addConcordance(spartition, concordance_label_g, **kwargs)
+
         k = math.comb(len(subset_data), 2)
 
         for subset_a, subset_b in combinations(subset_data.keys(), 2):
@@ -264,6 +278,7 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
                 continue
 
             u, p = mannwhitneyu(subset_data[subset_a], subset_data[subset_b], alternative="two-sided")
+            g = compute_range_gap(subset_data[subset_a], subset_data[subset_b])
 
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
@@ -291,6 +306,15 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
                 NIndividualsSubsetA=numbers[subset_a],
                 NIndividualsSubsetB=numbers[subset_b],
                 concordanceSupport=100 * p/k,
+            )
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel=concordance_label_g,
+                subsetnumberA=subset_a,
+                subsetnumberB=subset_b,
+                NIndividualsSubsetA=numbers[subset_a],
+                NIndividualsSubsetB=numbers[subset_b],
+                concordanceSupport=g,
             )
 
 
