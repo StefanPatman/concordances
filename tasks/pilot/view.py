@@ -15,7 +15,7 @@ from ..common.view import (
     PathSelector,
     BatchSequenceSelector,
 )
-from ..common.widgets import IntPropertyLineEdit, PropertyLineEdit
+from ..common.widgets import FloatPropertyLineEdit
 from . import long_description, pixmap_medium, title
 
 
@@ -42,6 +42,50 @@ class PathFileOutSelector(PathSelector):
         self.selectedPath.emit(Path(filename))
 
 
+class OptionsSelector(Card):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        label = QtWidgets.QLabel("\u2022  Advanced options:")
+        label.setStyleSheet("""font-size: 16px;""")
+        label.setMinimumWidth(150)
+
+
+        title_layout = QtWidgets.QHBoxLayout()
+        title_layout.addWidget(label, 1)
+        title_layout.setSpacing(16)
+
+        options_layout = QtWidgets.QGridLayout()
+        options_layout.setColumnMinimumWidth(0, 16)
+        options_layout.setColumnMinimumWidth(1, 54)
+        options_layout.setColumnStretch(3, 1)
+        options_layout.setHorizontalSpacing(32)
+        options_layout.setVerticalSpacing(8)
+        row = 0
+
+        name = QtWidgets.QLabel("Co-occurence threshold:")
+        field = FloatPropertyLineEdit()
+        description = QtWidgets.QLabel("Minimum distance threshold in kilometers.")
+        description.setStyleSheet("QLabel { font-style: italic; }")
+        options_layout.addWidget(name, row, 1)
+        options_layout.addWidget(field, row, 2)
+        options_layout.addWidget(description, row, 3)
+        self.controls.co_ocurrence_threshold = field
+        row += 1
+
+        name = QtWidgets.QLabel("Morphometrics alpha:")
+        field = FloatPropertyLineEdit()
+        description = QtWidgets.QLabel("Significance threshold for corrected p-values.")
+        description.setStyleSheet("QLabel { font-style: italic; }")
+        options_layout.addWidget(name, row, 1)
+        options_layout.addWidget(field, row, 2)
+        options_layout.addWidget(description, row, 3)
+        self.controls.morphometrics_threshold = field
+        row += 1
+
+        self.addLayout(title_layout)
+        self.addLayout(options_layout)
+
+
 class View(BlastTaskView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,6 +100,7 @@ class View(BlastTaskView):
         self.cards.coords = PathFileSelector("\u25E6  Coordinates", self)
         self.cards.morphometrics = PathFileSelector("\u25E6  Morphometrics", self)
         self.cards.sequences = BatchSequenceSelector("Haplotype Seqs")
+        self.cards.options = OptionsSelector(self)
 
         self.cards.subsets.set_placeholder_text("SPART XML file describing all subsets")
         self.cards.output.set_placeholder_text("Resulting SPART XML file with concordance information")
@@ -95,6 +140,9 @@ class View(BlastTaskView):
         self.binder.bind(self.cards.morphometrics.selectedPath, object.properties.morphometrics_path)
 
         self.cards.sequences.bind_batch_model(self.binder, object.sequence_paths)
+
+        self.cards.options.controls.co_ocurrence_threshold.bind_property(object.properties.co_ocurrence_threshold)
+        self.cards.options.controls.morphometrics_threshold.bind_property(object.properties.morphometrics_threshold)
 
         self.binder.bind(object.properties.editable, self.setEditable)
 

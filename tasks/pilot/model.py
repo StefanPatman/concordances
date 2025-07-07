@@ -18,6 +18,9 @@ class Model(TaskModel):
     morphometrics_path = Property(Path, Path())
     sequence_paths = Property(BatchSequenceModel, Instance)
 
+    co_ocurrence_threshold = Property(float, 5.0)
+    morphometrics_threshold = Property(float, 0.05)
+
     def __init__(self, name=None):
         super().__init__(name)
         self.can_open = False
@@ -31,6 +34,8 @@ class Model(TaskModel):
             self.properties.coord_path,
             self.properties.morphometrics_path,
             self.sequence_paths.properties.ready,
+            self.properties.co_ocurrence_threshold,
+            self.properties.morphometrics_threshold,
         ]:
             self.binder.bind(handle, self.checkReady)
         self.checkReady()
@@ -47,6 +52,10 @@ class Model(TaskModel):
             self.morphometrics_path != Path(),
             self.sequence_paths.ready,
         )):
+            return False
+        if not self.co_ocurrence_threshold:
+            return False
+        if not self.morphometrics_threshold:
             return False
         return True
 
@@ -66,6 +75,8 @@ class Model(TaskModel):
             coord_path=self.path_or_none(self.coord_path),
             morphometrics_path=self.path_or_none(self.morphometrics_path),
             sequence_paths=self.sequence_paths.get_all_paths(),
+            co_ocurrence_threshold=self.co_ocurrence_threshold,
+            morphometrics_threshold=self.morphometrics_threshold,
         )
 
     def onDone(self, report: ReportDone):

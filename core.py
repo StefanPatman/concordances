@@ -239,7 +239,7 @@ def compute_range_gap(a: list[float], b: list[float]) -> float:
     return max(min(a), min(b)) - min(max(a), max(b))
 
 
-def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, float]):
+def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, float], alpha: float | None = None):
 
     for spartition in spart.getSpartitions():
 
@@ -256,12 +256,13 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
         concordance_label_u = f"Mann-Whitney U-stat for {label}"
         concordance_label_p = f"Mann-Whitney P-value for {label}"
         concordance_label_b = f"Mann-Whitney P-value for {label} (Bonferroni corrected)"
+        concordance_label_s = f"Mann-Whitney significance for {label} (Bonferroni corrected)"
         concordance_label_g = f"Measurement gap for {label}"
 
         kwargs = dict(
             evidenceType="Morphology",
             evidenceDataType="Continuous",
-            evidenceDiscriminationType="Other",
+            evidenceDiscriminationType="Significance",
             evidenceDiscriminationDataType="Continuous",
         )
         spart.addConcordance(spartition, concordance_label_u, **kwargs)
@@ -274,6 +275,15 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
         )
         spart.addConcordance(spartition, concordance_label_p, **kwargs)
         spart.addConcordance(spartition, concordance_label_b, **kwargs)
+
+        if alpha:
+            kwargs = dict(
+                evidenceType="Morphology",
+                evidenceDataType="Continuous",
+                evidenceDiscriminationType="Significance",
+                evidenceDiscriminationDataType="Boolean",
+            )
+            spart.addConcordance(spartition, concordance_label_s, **kwargs)
 
         kwargs = dict(
             evidenceType="Morphology",
@@ -322,6 +332,17 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
                 NIndividualsSubsetB=numbers[subset_b],
                 concordanceSupport=p * k,
             )
+            if alpha:
+                spart.addConcordantLimit(
+                    spartitionLabel=spartition,
+                    concordanceLabel=concordance_label_s,
+                    subsetnumberA=subset_a,
+                    subsetnumberB=subset_b,
+                    NIndividualsSubsetA=numbers[subset_a],
+                    NIndividualsSubsetB=numbers[subset_b],
+                    concordanceSupport=bool(p * k < alpha),
+                )
+
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
                 concordanceLabel=concordance_label_g,
@@ -333,10 +354,9 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
             )
 
 
-
-def process_morphometrics_multiple(spart: Spart, data: dict[str, dict]):
+def process_morphometrics_multiple(spart: Spart, data: dict[str, dict], alpha: float = None):
     for header in data:
-        process_morphometrics(spart, header, data[header])
+        process_morphometrics(spart, header, data[header], alpha)
 
 
 def main():
@@ -348,7 +368,7 @@ def main():
     process_polygons(spart, latlons)
     process_coocurrences(spart, latlons, 5.0)
     process_haplostats(spart, sequences)
-    process_morphometrics_multiple(spart, morphometrics)
+    process_morphometrics_multiple(spart, morphometrics, 0.05)
     spart.toXML("out.xml")
 
 
