@@ -4,12 +4,12 @@
 [ ! "$CODESIGN_IDENTITY" ] && CODESIGN_IDENTITY="UNKNOWN"
 
 # program specifics
-APP_NAME="Concordance Demo"
-APP_IDENTIFIER="org.itaxotools.concordance.demo"
+APP_NAME="Concordance Pilot"
+APP_IDENTIFIER="org.itaxotools.concordance.pilot"
 APP_SCRIPT="../gui.py"
 APP_ENTITLEMENTS="data/entitlements.plist"
-APP_ICON_ICNS="data/demo.icns"
-APP_ICON_ICO="data/demo.ico"
+APP_ICON_ICNS="data/pilot.icns"
+APP_ICON_ICO="data/pilot.ico"
 
 # expand and export
 export CODESIGN_IDENTITY=$CODESIGN_IDENTITY

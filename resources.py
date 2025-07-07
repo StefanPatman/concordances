@@ -34,13 +34,13 @@ def lines_from_path(path) -> Iterator[str]:
 
 
 icons = LazyResourceCollection(
-    demo=lambda: QtGui.QIcon(get_data("logos/demo.ico")),
+    pilot=lambda: QtGui.QIcon(get_data("logos/pilot.ico")),
 )
 
 
 pixmaps = LazyResourceCollection(
-    demo=lambda: VectorPixmap(
-        get_data("logos/demo_banner.svg"),
+    pilot=lambda: VectorPixmap(
+        get_data("logos/pilot_banner.svg"),
         size=QtCore.QSize(170, 48),
         colormap=skin.colormap_icon,
     ),
