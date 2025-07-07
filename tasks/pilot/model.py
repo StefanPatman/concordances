@@ -2,6 +2,8 @@ from pathlib import Path
 
 from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
+from itaxotools.taxi_gui.loop import ReportDone
+from itaxotools.taxi_gui.types import Notification
 
 from . import process, title
 from ..common.model import BatchSequenceModel
@@ -65,3 +67,9 @@ class Model(TaskModel):
             morphometrics_path=self.path_or_none(self.morphometrics_path),
             sequence_paths=self.sequence_paths.get_all_paths(),
         )
+
+    def onDone(self, report: ReportDone):
+        self.notification.emit(
+            Notification.Info(f"{self.name} completed successfully!")
+        )
+        self.busy = False
