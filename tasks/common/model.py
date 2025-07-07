@@ -96,12 +96,12 @@ class PathListModel(QtCore.QAbstractListModel):
         return list(sorted(all))
 
 
-class BatchQueryModel(PropertyObject):
+class BatchFileModel(PropertyObject):
     batch_mode = Property(bool, False)
-    query_path = Property(Path, Path())
-    query_list = Property(PathListModel, Instance)
-    query_list_rows = Property(int, 0)
-    query_list_total = Property(int, 0)
+    file_path = Property(Path, Path())
+    file_list = Property(PathListModel, Instance)
+    file_list_rows = Property(int, 0)
+    file_list_total = Property(int, 0)
     parent_path = Property(Path, Path())
 
     ready = Property(bool, False)
@@ -111,19 +111,19 @@ class BatchQueryModel(PropertyObject):
         self.binder = Binder()
 
         for handle in [
-            self.query_list.rowsInserted,
-            self.query_list.rowsRemoved,
-            self.query_list.modelReset,
+            self.file_list.rowsInserted,
+            self.file_list.rowsRemoved,
+            self.file_list.modelReset,
         ]:
-            self.binder.bind(handle, self._update_query_list_rows)
-            self.binder.bind(handle, self._update_query_list_total)
+            self.binder.bind(handle, self._update_file_list_rows)
+            self.binder.bind(handle, self._update_file_list_total)
 
         for handle in [
             self.properties.batch_mode,
-            self.properties.query_path,
-            self.query_list.rowsInserted,
-            self.query_list.rowsRemoved,
-            self.query_list.modelReset,
+            self.properties.file_path,
+            self.file_list.rowsInserted,
+            self.file_list.rowsRemoved,
+            self.file_list.modelReset,
         ]:
             self.binder.bind(handle, self.check_ready)
 
@@ -136,54 +136,54 @@ class BatchQueryModel(PropertyObject):
 
     def is_ready(self):
         if self.batch_mode:
-            if not self.query_list.get_all_paths():
+            if not self.file_list.get_all_paths():
                 return False
         if not self.batch_mode:
-            if self.query_path == Path():
+            if self.file_path == Path():
                 return False
         return True
 
     def get_all_paths(self) -> list[Path]:
         if self.batch_mode:
-            return self.query_list.get_all_paths()
-        return [self.query_path]
+            return self.file_list.get_all_paths()
+        return [self.file_path]
 
-    def _update_query_list_rows(self):
-        self.query_list_rows = len(self.query_list.paths)
+    def _update_file_list_rows(self):
+        self.file_list_rows = len(self.file_list.paths)
 
-    def _update_query_list_total(self):
-        self.query_list_total = len(self.query_list.get_all_paths())
+    def _update_file_list_total(self):
+        self.file_list_total = len(self.file_list.get_all_paths())
 
     def set_globs(self, globs: list[str]):
-        self.query_list.globs = globs
+        self.file_list.globs = globs
 
     def delete_paths(self, indices: list[int]):
         if not indices:
             return
-        self.query_list.remove_paths(indices)
+        self.file_list.remove_paths(indices)
         self.update_parent_path()
 
     def clear_paths(self):
-        self.query_list.clear()
+        self.file_list.clear()
         self.update_parent_path()
 
     def add_paths(self, paths: list[Path]):
         if not paths:
             return
-        self.query_list.add_paths(paths)
+        self.file_list.add_paths(paths)
         self.update_parent_path()
 
     def add_folder(self, dir: Path):
-        self.query_list.add_paths([dir])
+        self.file_list.add_paths([dir])
         self.update_parent_path()
 
     def set_path(self, path: Path):
-        self.query_path = path
+        self.file_path = path
         self.update_parent_path()
 
     def update_parent_path(self):
         if self.batch_mode:
-            paths = self.query_list.paths
+            paths = self.file_list.paths
             if not paths:
                 self.parent_path = Path()
             else:
@@ -193,7 +193,7 @@ class BatchQueryModel(PropertyObject):
                 else:
                     self.parent_path = first.parent
         else:
-            self.parent_path = self.query_path.parent
+            self.parent_path = self.file_path.parent
 
     def open(self, path: Path):
         if self.batch_mode:
@@ -202,10 +202,8 @@ class BatchQueryModel(PropertyObject):
             self.set_path(path)
 
 
-class BatchDatabaseModel(BatchQueryModel):
+class BatchSequenceModel(BatchFileModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_globs(["nin", "pin"])
-
-    def get_all_paths(self) -> list[Path]:
-        return [path.with_suffix("") for path in super().get_all_paths()]
+        self.set_globs(["fa", "fas", "fasta"])
+        self.batch_mode = True

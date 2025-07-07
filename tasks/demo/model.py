@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from itaxotools.common.bindings import Property
+from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
 
 from . import process, title
+from ..common.model import BatchSequenceModel
 
 
 class Model(TaskModel):
@@ -12,8 +13,8 @@ class Model(TaskModel):
     subset_path = Property(Path, Path())
     output_path = Property(Path, Path())
     coord_path = Property(Path, Path())
-    sequence_path = Property(Path, Path())
     morphometrics_path = Property(Path, Path())
+    sequence_paths = Property(BatchSequenceModel, Instance)
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -26,8 +27,8 @@ class Model(TaskModel):
             self.properties.subset_path,
             self.properties.output_path,
             self.properties.coord_path,
-            self.properties.sequence_path,
             self.properties.morphometrics_path,
+            self.sequence_paths.properties.ready,
         ]:
             self.binder.bind(handle, self.checkReady)
         self.checkReady()
@@ -41,8 +42,8 @@ class Model(TaskModel):
             return False
         if not any((
             self.coord_path != Path(),
-            self.sequence_path != Path(),
             self.morphometrics_path != Path(),
+            self.sequence_paths.ready,
         )):
             return False
         return True
@@ -61,6 +62,6 @@ class Model(TaskModel):
             subset_path=self.subset_path,
             output_path=self.output_path,
             coord_path=self.path_or_none(self.coord_path),
-            sequence_path=self.path_or_none(self.sequence_path),
             morphometrics_path=self.path_or_none(self.morphometrics_path),
+            sequence_paths=self.sequence_paths.get_all_paths(),
         )

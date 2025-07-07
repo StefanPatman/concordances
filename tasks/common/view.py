@@ -10,7 +10,7 @@ from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import ScrollTaskView
 from itaxotools.taxi_gui.view.widgets import RadioButtonGroup
 
-from .model import BatchDatabaseModel, BatchQueryModel
+from .model import BatchSequenceModel, BatchFileModel
 from .types import BatchResults, DoubleBatchResults, Results, WarnResults
 from .widgets import BatchQueryHelp, ElidedLineEdit, ElidedLongLabel, GrowingListView
 
@@ -292,7 +292,7 @@ class OutputDirectorySelector(PathDirectorySelector):
         self.controls.append_timestamp = append_timestamp
 
 
-class BatchQuerySelector(Card):
+class BatchSequenceSelector(Card):
     batchModeChanged = QtCore.Signal(bool)
     selectedSinglePath = QtCore.Signal(Path)
     requestedAddPaths = QtCore.Signal(list)
@@ -303,68 +303,7 @@ class BatchQuerySelector(Card):
     def __init__(self, text, parent=None):
         super().__init__(parent)
         self.binder = Binder()
-        self.draw_mode()
-        self.draw_single("\u25B6  ", text)
-        self.draw_batch("\u25B6  ", text)
-
-    def draw_mode(self):
-        label = QtWidgets.QLabel("Input mode:")
-        label.setStyleSheet("""font-size: 16px;""")
-        label.setMinimumWidth(150)
-
-        single = QtWidgets.QRadioButton("Single file")
-        batch = QtWidgets.QRadioButton("Batch mode")
-
-        group = RadioButtonGroup()
-        group.valueChanged.connect(self._handle_batch_mode_changed)
-        group.add(single, False)
-        group.add(batch, True)
-
-        widget = QtWidgets.QWidget()
-        layout = QtWidgets.QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(label)
-        layout.addWidget(single)
-        layout.addWidget(batch, 1)
-        layout.addSpacing(136)
-        layout.setSpacing(16)
-        self.addWidget(widget)
-
-        self.controls.label = label
-        self.controls.single = single
-        self.controls.batch = batch
-        self.controls.batch_mode = group
-        self.controls.header = widget
-
-    def draw_single(self, symbol, text):
-        label = QtWidgets.QLabel(f"{symbol}{text}:")
-        label.setStyleSheet("""font-size: 16px;""")
-        label.setMinimumWidth(150)
-
-        field = ElidedLineEdit()
-        field.setPlaceholderText("Sequences to match against database contents (FASTA or FASTQ)")
-        field.textDeleted.connect(self._handle_single_path_deleted)
-        field.setReadOnly(True)
-
-        browse = QtWidgets.QPushButton("Browse")
-        browse.clicked.connect(self._handle_browse)
-        browse.setFixedWidth(120)
-
-        layout = QtWidgets.QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(label)
-        layout.addWidget(field, 1)
-        layout.addWidget(browse)
-        layout.setSpacing(16)
-
-        widget = QtWidgets.QWidget()
-        widget.setLayout(layout)
-        self.addWidget(widget)
-        widget.roll = VerticalRollAnimation(widget)
-        widget.roll._visible_target = True
-
-        self.controls.single_query = widget
-        self.controls.single_field = field
+        self.draw_batch("\u25E6  ", text)
 
     def draw_batch(self, symbol, text):
         label_symbol = QtWidgets.QLabel(symbol)
@@ -420,7 +359,6 @@ class BatchQuerySelector(Card):
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
         self.addWidget(widget)
-        widget.roll = VerticalRollAnimation(widget)
 
         self.controls.batch_query = widget
         self.controls.batch_view = view
@@ -463,9 +401,7 @@ class BatchQuerySelector(Card):
         self.requestClear.emit()
 
     def set_batch_mode(self, value: bool):
-        self.controls.batch_mode.setValue(value)
-        self.controls.batch_query.roll.setAnimatedVisible(value)
-        self.controls.single_query.roll.setAnimatedVisible(not value)
+        self.controls.batch_query.setVisible(value)
 
     def set_batch_total(self, total: int):
         self.controls.batch_total.setText(f"Total: {total}")
@@ -479,35 +415,31 @@ class BatchQuerySelector(Card):
         self.controls.single_field.setText(text)
 
     def set_placeholder_text(self, text: str):
-        self.controls.single_field.setPlaceholderText(text)
         self.controls.batch_help.setPlaceholderText(text)
 
     def set_batch_placeholder_text(self, text: str):
         self.controls.batch_help.setPlaceholderText(text)
 
-    def bind_batch_model(self, binder: Binder, object: BatchQueryModel):
-        self.controls.batch_view.setModel(object.query_list)
+    def bind_batch_model(self, binder: Binder, object: BatchFileModel):
+        self.controls.batch_view.setModel(object.file_list)
 
         binder.bind(object.properties.batch_mode, self.set_batch_mode)
         binder.bind(self.batchModeChanged, object.properties.batch_mode)
-
-        binder.bind(object.properties.query_path, self.set_path)
-        binder.bind(self.selectedSinglePath, object.set_path)
 
         binder.bind(self.requestClear, object.clear_paths)
         binder.bind(self.requestDelete, object.delete_paths)
         binder.bind(self.requestedAddPaths, object.add_paths)
         binder.bind(self.requestedAddFolder, object.add_folder)
 
-        binder.bind(object.properties.query_list_total, self.set_batch_total)
-        binder.bind(object.properties.query_list_rows, self.set_batch_help_visible, proxy=lambda x: x == 0)
+        binder.bind(object.properties.file_list_total, self.set_batch_total)
+        binder.bind(object.properties.file_list_rows, self.set_batch_help_visible, proxy=lambda x: x == 0)
 
-        binder.bind(object.query_list.rowsInserted, self.controls.batch_view.updateGeometry)
-        binder.bind(object.query_list.rowsRemoved, self.controls.batch_view.updateGeometry)
-        binder.bind(object.query_list.modelReset, self.controls.batch_view.updateGeometry)
+        binder.bind(object.file_list.rowsInserted, self.controls.batch_view.updateGeometry)
+        binder.bind(object.file_list.rowsRemoved, self.controls.batch_view.updateGeometry)
+        binder.bind(object.file_list.modelReset, self.controls.batch_view.updateGeometry)
 
 
-class BatchDatabaseSelector(BatchQuerySelector):
+class BatchDatabaseSelector(BatchSequenceSelector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.controls.label.setText("Database mode:")
@@ -519,7 +451,7 @@ class BatchDatabaseSelector(BatchQuerySelector):
     def draw_batch(self, symbol, text):
         super().draw_batch(symbol, text + "s")
 
-    def bind_batch_model(self, binder: Binder, object: BatchDatabaseModel):
+    def bind_batch_model(self, binder: Binder, object: BatchSequenceModel):
         super().bind_batch_model(binder, object)
 
     def _handle_browse(self, *args):

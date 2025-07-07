@@ -22,8 +22,8 @@ def execute(
     subset_path: Path,
     output_path: Path,
     coord_path: Path | None,
-    sequence_path: Path | None,
     morphometrics_path: Path | None,
+    sequence_paths: list[Path],
 ) -> Results:
     from core import read_latlons_from_spart, read_latlons_from_tabfile, read_morphometrics_from_tabfile, process_polygons, process_coocurrences, process_haplostats, process_morphometrics_multiple
     from itaxotools.taxi2.sequences import SequenceHandler, Sequences
@@ -42,13 +42,13 @@ def execute(
         process_polygons(spart, latlons)
         process_coocurrences(spart, latlons, 5.0)
 
-    if sequence_path:
-        sequences = Sequences.fromPath(sequence_path, SequenceHandler.Fasta)
-        process_haplostats(spart, sequences)
-
     if morphometrics_path:
         morphometrics = read_morphometrics_from_tabfile(morphometrics_path)
         process_morphometrics_multiple(spart, morphometrics)
+
+    for sequence_path in sequence_paths:
+        sequences = Sequences.fromPath(sequence_path, SequenceHandler.Fasta)
+        process_haplostats(spart, sequences, label=sequence_path.stem)
 
     spart.toXML(output_path)
 

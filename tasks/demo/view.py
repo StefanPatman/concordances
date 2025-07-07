@@ -13,6 +13,7 @@ from ..common.view import (
     BlastTaskView,
     GraphicTitleCard,
     PathSelector,
+    BatchSequenceSelector,
 )
 from ..common.widgets import IntPropertyLineEdit, PropertyLineEdit
 from . import long_description, pixmap_medium, title
@@ -53,14 +54,14 @@ class View(BlastTaskView):
         self.cards.subsets = PathFileSelector("\u25C0  Subsets", self)
         self.cards.output = PathFileOutSelector("\u25B6  Output", self)
         self.cards.coords = PathFileSelector("\u25E6  Coordinates", self)
-        self.cards.sequences = PathFileSelector("\u25E6  Sequences", self)
         self.cards.morphometrics = PathFileSelector("\u25E6  Morphometrics", self)
+        self.cards.sequences = BatchSequenceSelector("Haplotype Seqs")
 
         self.cards.subsets.set_placeholder_text("SPART XML file describing all subsets")
         self.cards.output.set_placeholder_text("Resulting SPART XML file with concordance information")
         self.cards.coords.set_placeholder_text("SPART XML or Tabfile containing lat/lon coordinates")
-        self.cards.sequences.set_placeholder_text("Phased FASTA file containing allele sequences")
         self.cards.morphometrics.set_placeholder_text("Tabfile containing morphometrics")
+        self.cards.sequences.set_placeholder_text("Phased FASTA file containing allele sequences")
 
         layout = QtWidgets.QVBoxLayout()
         for card in self.cards:
@@ -90,11 +91,10 @@ class View(BlastTaskView):
         self.binder.bind(object.properties.coord_path, self.cards.coords.set_path)
         self.binder.bind(self.cards.coords.selectedPath, object.properties.coord_path)
 
-        self.binder.bind(object.properties.sequence_path, self.cards.sequences.set_path)
-        self.binder.bind(self.cards.sequences.selectedPath, object.properties.sequence_path)
-
         self.binder.bind(object.properties.morphometrics_path, self.cards.morphometrics.set_path)
         self.binder.bind(self.cards.morphometrics.selectedPath, object.properties.morphometrics_path)
+
+        self.cards.sequences.bind_batch_model(self.binder, object.sequence_paths)
 
         self.binder.bind(object.properties.editable, self.setEditable)
 

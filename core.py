@@ -145,7 +145,7 @@ def is_id_allele_of_individual(id: str, individual: str) -> bool:
     return True
 
 
-def process_haplostats(spart: Spart, sequences: Sequences):
+def process_haplostats(spart: Spart, sequences: Sequences, label: str = ''):
 
     for spartition in spart.getSpartitions():
         stats = HaploStats()
@@ -170,13 +170,20 @@ def process_haplostats(spart: Spart, sequences: Sequences):
             if sequences:
                 stats.add(subset, sequences)
 
+        concordance_label_hap = "haplotypes shared between subsets"
+        concordance_label_ffr = "FFRs shared between subsets"
+
+        if label:
+            concordance_label_hap = f"{label} {concordance_label_hap}"
+            concordance_label_ffr = f"{label} {concordance_label_ffr}"
+
         kwargs = dict(
             evidenceType="Molecular",
             evidenceDataType="Ordinal",
             evidenceDiscriminationType="Boolean",
             evidenceDiscriminationDataType="Boolean",
         )
-        spart.addConcordance(spartition, "haplotypes shared between subsets", **kwargs)
+        spart.addConcordance(spartition, concordance_label_hap, **kwargs)
 
         data = stats.get_haplotypes_shared_between_subsets(include_empty=True)
         for chunk in data:
@@ -185,7 +192,7 @@ def process_haplostats(spart: Spart, sequences: Sequences):
             common: dict[str, int] = chunk["common"]
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
-                concordanceLabel="haplotypes shared between subsets",
+                concordanceLabel=concordance_label_hap,
                 subsetnumberA=subset_a,
                 subsetnumberB=subset_b,
                 NIndividualsSubsetA=numbers[subset_a],
@@ -199,7 +206,7 @@ def process_haplostats(spart: Spart, sequences: Sequences):
             evidenceDiscriminationType="Boolean",
             evidenceDiscriminationDataType="Boolean",
         )
-        spart.addConcordance(spartition, "FFRs shared between subsets", **kwargs)
+        spart.addConcordance(spartition, concordance_label_ffr, **kwargs)
 
         data = stats.get_fields_for_recombination_shared_between_subsets(include_empty=True)
         for chunk in data:
@@ -208,7 +215,7 @@ def process_haplostats(spart: Spart, sequences: Sequences):
             common: dict[str, int] = chunk["common"]
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
-                concordanceLabel="FFRs shared between subsets",
+                concordanceLabel=concordance_label_ffr,
                 subsetnumberA=subset_a,
                 subsetnumberB=subset_b,
                 NIndividualsSubsetA=numbers[subset_a],
