@@ -1,7 +1,8 @@
 from pathlib import Path
 from time import perf_counter
 from typing import NamedTuple
-
+from itaxotools.common.utility import AttrDict
+from tempfile import TemporaryDirectory
 
 
 class Results(NamedTuple):
@@ -26,13 +27,36 @@ def execute(
     sequence_paths: list[Path],
     co_ocurrence_threshold: float,
     morphometrics_threshold: float,
+    asapy_mode: bool,
+    asapy_options: dict[str, object],
 ) -> Results:
     from core import read_latlons_from_spart, read_latlons_from_tabfile, read_morphometrics_from_tabfile, process_polygons, process_coocurrences, process_haplostats, process_morphometrics_multiple
     from itaxotools.taxi2.sequences import SequenceHandler, Sequences
     from itaxotools.taxi2.files import is_tabfile
     from itaxotools.spart_parser import Spart
+    from itaxotools.asapy import PartitionAnalysis
 
     ts = perf_counter()
+
+    if asapy_mode:
+
+        a = PartitionAnalysis(asapy_options.input_path)
+        a.params.general.sequence_length = asapy_options.sequence_length
+        a.params.advanced.number = asapy_options.number
+        a.params.advanced.seuil_pvalue = asapy_options.seuil_pvalue
+        a.params.advanced.seed = asapy_options.seed
+        a.params.distance.method = asapy_options.method
+        a.params.distance.rate = asapy_options.kimura_rate
+
+        temp = TemporaryDirectory(prefix='asap_')
+        a.target = Path(temp.name).as_posix()
+
+        a.run()
+
+        xml_files = list(Path(temp.name).glob("*.xml"))
+        if not xml_files:
+            raise Exception("ASAPy did not generate any XML files, exiting...")
+        subset_path = xml_files[0]
 
     spart = Spart.fromXML(subset_path)
 

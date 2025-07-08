@@ -2,15 +2,34 @@ from pathlib import Path
 
 from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
+from itaxotools.taxi_gui.model.common import Object
 from itaxotools.taxi_gui.loop import ReportDone
 from itaxotools.taxi_gui.types import Notification
+from itaxotools.common.utility import AttrDict
 
 from . import process, title
+from .types import SubstitutionModel
 from ..common.model import BatchSequenceModel
+
+
+class AsapyOptions(Object):
+    input_path = Property(Path, Path())
+    number = Property(int, 10)
+    sequence_length = Property(int, 600)
+    seuil_pvalue = Property(float, 0.01)
+    seed = Property(int, -1)
+    method = Property(SubstitutionModel, SubstitutionModel.JC)
+    kimura_rate = Property(float, 2.0)
+
+    def as_dict(self) -> AttrDict:
+        return AttrDict({p.key: p.value for p in self.properties})
 
 
 class Model(TaskModel):
     task_name = title
+
+    asapy_mode = Property(bool, False)
+    asapy_options = Property(AsapyOptions, Instance)
 
     subset_path = Property(Path, Path())
     output_path = Property(Path, Path())
@@ -29,6 +48,8 @@ class Model(TaskModel):
         self.subtask_init = SubtaskModel(self, bind_busy=False)
 
         for handle in [
+            self.properties.asapy_mode,
+            self.asapy_options.properties.input_path,
             self.properties.subset_path,
             self.properties.output_path,
             self.properties.coord_path,
@@ -43,7 +64,9 @@ class Model(TaskModel):
         self.subtask_init.start(process.initialize)
 
     def isReady(self):
-        if self.subset_path == Path():
+        if self.asapy_mode and self.asapy_options.input_path == Path():
+            return False
+        if not self.asapy_mode and self.subset_path == Path():
             return False
         if self.output_path == Path():
             return False
@@ -77,10 +100,13 @@ class Model(TaskModel):
             sequence_paths=self.sequence_paths.get_all_paths(),
             co_ocurrence_threshold=self.co_ocurrence_threshold,
             morphometrics_threshold=self.morphometrics_threshold,
+            asapy_mode=self.asapy_mode,
+            asapy_options=self.asapy_options.as_dict(),
         )
 
     def onDone(self, report: ReportDone):
         self.notification.emit(
             Notification.Info(f"{self.name} completed successfully!")
         )
+
         self.busy = False
