@@ -114,10 +114,10 @@ def process_coocurrences(spart: Spart, latlons: dict[str, tuple[float, float]], 
             points_a = points[subset_a]
             points_b = points[subset_b]
 
-            distances = list(distance(a, b).km for a, b in product(points_a, points_b))
-            if not distances:
+            distances = (distance(a, b).km for a, b in product(points_a, points_b))
+            min_distance = min(distances, default=None)
+            if min_distance is None:
                 continue
-            min_distance = min(distances)
 
             spart.addConcordantLimit(
                 spartitionLabel=spartition,
