@@ -6,7 +6,14 @@ from itaxotools.taxi_gui.model.common import Object
 from itaxotools.taxi_gui.loop import ReportDone
 from itaxotools.taxi_gui.types import Notification
 from itaxotools.common.utility import AttrDict
-
+from itaxotools.taxi_gui.threading import (
+    ReportDone,
+    ReportExit,
+    ReportFail,
+    ReportProgress,
+    ReportStop,
+    Worker,
+)
 from . import process, title
 from .types import SubstitutionModel
 from ..common.model import BatchSequenceModel, BlastTaskModel
@@ -107,3 +114,20 @@ class Model(BlastTaskModel):
     def onDone(self, report: ReportDone):
         self.report_results.emit(self.task_name, report.result)
         self.busy = False
+        self.reset_asapy()
+
+    def onFail(self, report: ReportFail):
+        super().onFail(report)
+        self.reset_asapy()
+
+    def onError(self, report: ReportExit):
+        super().onError(report)
+        self.reset_asapy()
+
+    def onStop(self, report: ReportStop):
+        super().onStop(report)
+        self.reset_asapy()
+
+    def reset_asapy(self):
+        if self.asapy_mode:
+            self.worker.reset()
