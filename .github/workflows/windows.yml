@@ -11,7 +11,7 @@ jobs:
 
   build-executable:
     name: Build Windows executable
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
