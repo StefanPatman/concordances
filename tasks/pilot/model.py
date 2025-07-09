@@ -9,7 +9,7 @@ from itaxotools.common.utility import AttrDict
 
 from . import process, title
 from .types import SubstitutionModel
-from ..common.model import BatchSequenceModel
+from ..common.model import BatchSequenceModel, BlastTaskModel
 
 
 class AsapyOptions(Object):
@@ -25,7 +25,7 @@ class AsapyOptions(Object):
         return AttrDict({p.key: p.value for p in self.properties})
 
 
-class Model(TaskModel):
+class Model(BlastTaskModel):
     task_name = title
 
     asapy_mode = Property(bool, False)
@@ -105,8 +105,5 @@ class Model(TaskModel):
         )
 
     def onDone(self, report: ReportDone):
-        self.notification.emit(
-            Notification.Info(f"{self.name} completed successfully!")
-        )
-
+        self.report_results.emit(self.task_name, report.result)
         self.busy = False

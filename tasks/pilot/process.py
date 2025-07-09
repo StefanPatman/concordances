@@ -4,10 +4,7 @@ from typing import NamedTuple
 from itaxotools.common.utility import AttrDict
 from tempfile import TemporaryDirectory
 
-
-class Results(NamedTuple):
-    output_path: Path
-    seconds_taken: float
+from ..common.types import Results
 
 
 def initialize():
