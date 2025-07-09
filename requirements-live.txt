@@ -2,3 +2,4 @@ git+https://github.com/StefanPatman/ASAPy.git
 git+https://github.com/iTaxoTools/SpartParser.git
 git+https://github.com/iTaxoTools/TaxI2.git
 git+https://github.com/iTaxoTools/TaxIGui.git
+git+https://github.com/iTaxoTools/haplostats.git
