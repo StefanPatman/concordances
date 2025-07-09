@@ -169,9 +169,9 @@ def process_haplostats(spart: Spart, sequences: Sequences, label: str = ''):
                         subset_sequences[subset].append(sequence.seq)
             numbers[subset] = len(subset_sequences[subset])
 
-        for subset, sequences in subset_sequences.items():
-            if sequences:
-                stats.add(subset, sequences)
+        for subset, seqs in subset_sequences.items():
+            if seqs:
+                stats.add(subset, seqs)
 
         concordance_label_hap = "haplotypes shared between subsets"
         concordance_label_ffr = "FFRs shared between subsets"
