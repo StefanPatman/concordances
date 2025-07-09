@@ -35,7 +35,7 @@ scipy==1.16.0
 seaborn==0.13.2
 setuptools==78.1.0
 shapely==2.1.0
-shiboken6==6.9.0
+shiboken6==6.7.2
 six==1.17.0
 tzdata==2025.2
 wheel==0.45.1
