@@ -233,6 +233,8 @@ def read_morphometrics_from_tabfile(path: Path) -> dict[str, dict[str, float]]:
         for row in file:
             id = row[0]
             for header, value in zip(file.headers[1:], row[1:]):
+                if not value or value == "NA":
+                    continue
                 data[header][id] = float(value)
     return data
 
