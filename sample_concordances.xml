@@ -69,6 +69,66 @@
 					<concordantlimit subsetnumberA="2" subsetnumberB="4" NIndividualsSubsetA="2" NIndividualsSubsetB="4" concordanceSupport="No"/>
 					<concordantlimit subsetnumberA="3" subsetnumberB="4" NIndividualsSubsetA="3" NIndividualsSubsetB="4" concordanceSupport="No"/>
 				</concordance>
+				<concordance evidenceName="Mann-Whitney U-stat for height" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Continuous">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="7.5"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="2.0"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="0.0"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney P-value for height" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Proportion">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="0.7212766990291557"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="0.5333333333333333"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="0.2"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney P-value for height (Bonferroni corrected)" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Proportion">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="4.327660194174934"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="3.2"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="1.2000000000000002"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney significance for height (Bonferroni corrected)" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Boolean">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="No"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="No"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="No"/>
+				</concordance>
+				<concordance evidenceName="Measurement gap for height" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Gap" evidenceDiscriminationDataType="Continuous">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="-3.0"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="-1.0"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="1.0"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney U-stat for weight" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Continuous">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="11.0"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="7.0"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="2.0"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney P-value for weight" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Proportion">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="0.09872864789482493"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="0.21881941582349118"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="0.7609067270751141"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney P-value for weight (Bonferroni corrected)" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Proportion">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="0.5923718873689495"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="1.312916494940947"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="4.565440362450684"/>
+				</concordance>
+				<concordance evidenceName="Mann-Whitney significance for weight (Bonferroni corrected)" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Significance" evidenceDiscriminationDataType="Boolean">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="No"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="No"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="No"/>
+				</concordance>
+				<concordance evidenceName="Measurement gap for weight" evidenceType="Morphology" evidenceDataType="Continuous" evidenceDiscriminationType="Gap" evidenceDiscriminationDataType="Continuous">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="3" concordanceSupport="0.0"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="2" concordanceSupport="0.0"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="3" NIndividualsSubsetB="2" concordanceSupport="-1.0"/>
+				</concordance>
+				<concordance evidenceName="sample_sequences haplotypes shared between subsets" evidenceType="Molecular" evidenceDataType="Ordinal" evidenceDiscriminationType="Boolean" evidenceDiscriminationDataType="Boolean">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="4" concordanceSupport="Yes"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="6" concordanceSupport="No"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="6" concordanceSupport="Yes"/>
+				</concordance>
+				<concordance evidenceName="sample_sequences FFRs shared between subsets" evidenceType="Molecular" evidenceDataType="Ordinal" evidenceDiscriminationType="Boolean" evidenceDiscriminationDataType="Boolean">
+					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="4" NIndividualsSubsetB="4" concordanceSupport="Yes"/>
+					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="6" concordanceSupport="Yes"/>
+					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="4" NIndividualsSubsetB="6" concordanceSupport="Yes"/>
+				</concordance>
 			</concordances>
 		</spartition>
 	</spartitions>

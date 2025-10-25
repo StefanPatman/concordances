@@ -1,18 +1,14 @@
 from pathlib import Path
 
 from itaxotools.common.bindings import Property, Instance
-from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
+from itaxotools.taxi_gui.model.tasks import SubtaskModel
 from itaxotools.taxi_gui.model.common import Object
-from itaxotools.taxi_gui.loop import ReportDone
-from itaxotools.taxi_gui.types import Notification
 from itaxotools.common.utility import AttrDict
 from itaxotools.taxi_gui.threading import (
     ReportDone,
     ReportExit,
     ReportFail,
-    ReportProgress,
     ReportStop,
-    Worker,
 )
 from . import process, title
 from .types import SubstitutionModel
@@ -49,7 +45,7 @@ class Model(BlastTaskModel):
 
     def __init__(self, name=None):
         super().__init__(name)
-        self.can_open = False
+        self.can_open = True
         self.can_save = False
 
         self.subtask_init = SubtaskModel(self, bind_busy=False)
@@ -77,11 +73,13 @@ class Model(BlastTaskModel):
             return False
         if self.output_path == Path():
             return False
-        if not any((
-            self.coord_path != Path(),
-            self.morphometrics_path != Path(),
-            self.sequence_paths.ready,
-        )):
+        if not any(
+            (
+                self.coord_path != Path(),
+                self.morphometrics_path != Path(),
+                self.sequence_paths.ready,
+            )
+        ):
             return False
         if not self.co_ocurrence_threshold:
             return False

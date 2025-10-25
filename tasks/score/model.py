@@ -1,21 +1,22 @@
+from PySide6 import QtCore
 from pathlib import Path
 
-from itaxotools.common.bindings import Property, Instance
-from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
-from itaxotools.taxi_gui.model.common import Object
-from itaxotools.taxi_gui.loop import ReportDone
-from itaxotools.taxi_gui.types import Notification
-from itaxotools.common.utility import AttrDict
-from itaxotools.taxi_gui.threading import (
-    ReportDone,
-    ReportExit,
-    ReportFail,
-    ReportProgress,
-    ReportStop,
-    Worker,
-)
+from itaxotools.common.bindings import Property
+from itaxotools.taxi_gui.model.tasks import SubtaskModel
+from itaxotools.taxi_gui.threading import ReportDone
 from . import process, title
-from ..common.model import BatchSequenceModel, BlastTaskModel
+from ..common.model import BlastTaskModel
+from .types import OpenResults
+
+
+class VersionSubtaskModel(SubtaskModel):
+    task_name = "OpenSubtask"
+
+    done = QtCore.Signal(OpenResults)
+
+    def onDone(self, results: OpenResults):
+        self.done.emit(results)
+        self.busy = False
 
 
 class Model(BlastTaskModel):
@@ -26,10 +27,13 @@ class Model(BlastTaskModel):
 
     def __init__(self, name=None):
         super().__init__(name)
-        self.can_open = False
+        self.can_open = True
         self.can_save = False
 
         self.subtask_init = SubtaskModel(self, bind_busy=False)
+
+        self.subtask_open = VersionSubtaskModel(self, bind_busy=True)
+        self.binder.bind(self.subtask_open.done, self._handle_open_results)
 
         for handle in [
             self.properties.concordance_path,
@@ -39,6 +43,10 @@ class Model(BlastTaskModel):
         self.checkReady()
 
         self.subtask_init.start(process.initialize)
+
+    def _handle_open_results(self, results: OpenResults):
+        # Update a table model with results
+        pass
 
     def isReady(self):
         if self.concordance_path == Path():
@@ -63,3 +71,4 @@ class Model(BlastTaskModel):
     def open(self, path: Path):
         self.concordance_path = path
         self.output_path = path.with_stem(path.stem + "_scored")
+        self.subtask_open.start(process.open_spart, path)

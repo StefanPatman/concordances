@@ -1,10 +1,8 @@
 from pathlib import Path
 from time import perf_counter
-from typing import NamedTuple
-from itaxotools.common.utility import AttrDict
-from tempfile import TemporaryDirectory
 
 from ..common.types import Results
+from .types import OpenResults
 
 
 def initialize():
@@ -16,19 +14,36 @@ def initialize():
     import itaxotools.spart_parser  # noqa
 
 
+def open_spart(path: Path):
+    from itaxotools.spart_parser import Spart
+
+    spart = Spart.fromXML(path)
+
+    spartition_data: dict[str, list[str]] = {}
+    concordance_data: dict[str, dict[str, object]] = {}
+
+    for spartition in spart.getSpartitions():
+        concordances = spart.getSpartitionConcordances(spartition)
+        spartition_data[spartition] = concordances
+        for concordance in concordances:
+            data = spart.getConcordanceData(spartition, concordance)
+            if concordance not in concordance_data:
+                concordance_data[concordance] = data
+            else:
+                assert concordance_data[concordance] == data
+
+    return OpenResults(spartition_data, concordance_data)
+
+
 def execute(
     concordance_path: Path,
     output_path: Path,
 ) -> Results:
-    from core import read_latlons_from_spart, read_latlons_from_tabfile, read_morphometrics_from_tabfile, process_polygons, process_coocurrences, process_haplostats, process_morphometrics_multiple
-    from itaxotools.taxi2.sequences import SequenceHandler, Sequences
-    from itaxotools.taxi2.files import is_tabfile
     from itaxotools.spart_parser import Spart
-    from itaxotools.asapy import PartitionAnalysis
 
     ts = perf_counter()
 
-    spart = Spart.fromXML(subset_path)
+    spart = Spart.fromXML(concordance_path)
 
     pass
 

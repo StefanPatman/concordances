@@ -9,5 +9,6 @@ class Results(NamedTuple):
     seconds_taken: float
 
 
-class ScanResults(NamedTuple):
-    pass
+class OpenResults(NamedTuple):
+    spartition_data: dict[str, list[str]]
+    concordance_data: dict[str, dict[str]]

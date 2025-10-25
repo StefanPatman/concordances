@@ -1,21 +1,16 @@
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtWidgets
 
 from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.tasks.common.view import ProgressCard
-from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
-from itaxotools.taxi_gui.view.cards import Card
-from itaxotools.taxi_gui.view.widgets import NoWheelComboBox, RadioButtonGroup
 
 from ..common.view import (
     BlastTaskView,
     GraphicTitleCard,
     PathSelector,
-    BatchSequenceSelector,
 )
-from ..common.widgets import FloatPropertyLineEdit, IntPropertyLineEdit
 from . import long_description, pixmap_medium, title
 
 
@@ -49,13 +44,19 @@ class View(BlastTaskView):
 
     def draw_cards(self):
         self.cards = AttrDict()
-        self.cards.title = GraphicTitleCard(title, long_description, pixmap_medium.resource, self)
+        self.cards.title = GraphicTitleCard(
+            title, long_description, pixmap_medium.resource, self
+        )
         self.cards.progress = ProgressCard(self)
         self.cards.concordances = PathFileSelector("\u25C0  Concordances", self)
         self.cards.output = PathFileOutSelector("\u25B6  Output", self)
 
-        self.cards.concordances.set_placeholder_text("SPART XML file conbtaining concordances")
-        self.cards.output.set_placeholder_text("Resulting SPART XML file with concordance scores")
+        self.cards.concordances.set_placeholder_text(
+            "SPART XML file conbtaining concordances"
+        )
+        self.cards.output.set_placeholder_text(
+            "Resulting SPART XML file with concordance scores"
+        )
 
         layout = QtWidgets.QVBoxLayout()
         for card in self.cards:
@@ -77,7 +78,9 @@ class View(BlastTaskView):
         self.binder.bind(object.properties.name, self.cards.title.setTitle)
         self.binder.bind(object.properties.busy, self.cards.progress.setVisible)
 
-        self.binder.bind(object.properties.concordance_path, self.cards.concordances.set_path)
+        self.binder.bind(
+            object.properties.concordance_path, self.cards.concordances.set_path
+        )
         self.binder.bind(self.cards.concordances.selectedPath, object.open)
 
         self.binder.bind(object.properties.output_path, self.cards.output.set_path)

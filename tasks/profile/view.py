@@ -53,7 +53,6 @@ class OptionsSelector(Card):
         label.setStyleSheet("""font-size: 16px;""")
         label.setMinimumWidth(150)
 
-
         title_layout = QtWidgets.QHBoxLayout()
         title_layout.addWidget(label, 1)
         title_layout.setSpacing(16)
@@ -128,7 +127,9 @@ class AsapyComboboxDelegate(QtWidgets.QStyledItemDelegate):
 
         self.initStyleOption(option, index)
         option.text = index.data(AsapyCombobox.LabelRole)
-        QtWidgets.QApplication.style().drawControl(QtWidgets.QStyle.CE_ItemViewItem, option, painter)
+        QtWidgets.QApplication.style().drawControl(
+            QtWidgets.QStyle.CE_ItemViewItem, option, painter
+        )
 
     def sizeHint(self, option, index):
         height = self.parent().sizeHint().height()
@@ -142,7 +143,9 @@ class AsapyCombobox(NoWheelComboBox):
     DataRole = QtCore.Qt.UserRole
     LabelRole = QtCore.Qt.UserRole + 1
 
-    def __init__(self, models: list[SubstitutionModel] = list(SubstitutionModel), *args, **kwargs):
+    def __init__(
+        self, models: list[SubstitutionModel] = list(SubstitutionModel), *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         model = QtGui.QStandardItemModel()
         for enum in models:
@@ -157,7 +160,9 @@ class AsapyCombobox(NoWheelComboBox):
         self.setItemDelegate(delegate)
 
         metrics = self.fontMetrics()
-        length = max([metrics.horizontalAdvance(enum.description) for enum in SubstitutionModel])
+        length = max(
+            [metrics.horizontalAdvance(enum.description) for enum in SubstitutionModel]
+        )
         self.view().setMinimumWidth(length + 16)
 
         self.currentIndexChanged.connect(self._handle_index_changed)
@@ -186,7 +191,9 @@ class AsapSelector(PathFileSelector):
 
         name = QtWidgets.QLabel("Number of best scores:")
         field = IntPropertyLineEdit()
-        description = QtWidgets.QLabel("Number of results with the highest scores to be displayed.")
+        description = QtWidgets.QLabel(
+            "Number of results with the highest scores to be displayed."
+        )
         description.setStyleSheet("QLabel { font-style: italic; }")
         layout.addWidget(name, row, 1)
         layout.addWidget(field, row, 2)
@@ -216,7 +223,9 @@ class AsapSelector(PathFileSelector):
 
         name = QtWidgets.QLabel("Seed:")
         field = IntPropertyLineEdit()
-        description = QtWidgets.QLabel("Use fixed seed value. If you don’t want to use a fixed seed value, set to -1.")
+        description = QtWidgets.QLabel(
+            "Use fixed seed value. If you don’t want to use a fixed seed value, set to -1."
+        )
         description.setStyleSheet("QLabel { font-style: italic; }")
         layout.addWidget(name, row, 1)
         layout.addWidget(field, row, 2)
@@ -236,7 +245,9 @@ class AsapSelector(PathFileSelector):
 
         name = QtWidgets.QLabel("Kimura TS/TV:")
         field = FloatPropertyLineEdit()
-        description = QtWidgets.QLabel("Transition/transversion for Kimura 3-P distance.")
+        description = QtWidgets.QLabel(
+            "Transition/transversion for Kimura 3-P distance."
+        )
         description.setStyleSheet("QLabel { font-style: italic; }")
         layout.addWidget(name, row, 1)
         layout.addWidget(field, row, 2)
@@ -254,7 +265,9 @@ class View(BlastTaskView):
 
     def draw_cards(self):
         self.cards = AttrDict()
-        self.cards.title = GraphicTitleCard(title, long_description, pixmap_medium.resource, self)
+        self.cards.title = GraphicTitleCard(
+            title, long_description, pixmap_medium.resource, self
+        )
         self.cards.progress = ProgressCard(self)
         self.cards.mode = ModeSelector("\u25CF  Spartitions", self)
         self.cards.asapy = AsapSelector("\u25C0  ASAP Sequences", self)
@@ -267,10 +280,18 @@ class View(BlastTaskView):
 
         self.cards.asapy.set_placeholder_text("FASTA file to be processed by ASAPy")
         self.cards.subsets.set_placeholder_text("SPART XML file describing all subsets")
-        self.cards.output.set_placeholder_text("Resulting SPART XML file with concordance information")
-        self.cards.coords.set_placeholder_text("SPART XML or Tabfile containing lat/lon coordinates")
-        self.cards.morphometrics.set_placeholder_text("Tabfile containing morphometrics")
-        self.cards.sequences.set_placeholder_text("Phased FASTA file containing allele sequences")
+        self.cards.output.set_placeholder_text(
+            "Resulting SPART XML file with concordance information"
+        )
+        self.cards.coords.set_placeholder_text(
+            "SPART XML or Tabfile containing lat/lon coordinates"
+        )
+        self.cards.morphometrics.set_placeholder_text(
+            "Tabfile containing morphometrics"
+        )
+        self.cards.sequences.set_placeholder_text(
+            "Phased FASTA file containing allele sequences"
+        )
 
         self.cards.asapy.roll = VerticalRollAnimation(self.cards.asapy)
         self.cards.subsets.roll = VerticalRollAnimation(self.cards.subsets)
@@ -298,14 +319,24 @@ class View(BlastTaskView):
         self.binder.bind(object.properties.asapy_mode, self.cards.mode.setValue)
         self.binder.bind(self.cards.mode.valueChanged, object.properties.asapy_mode)
 
-        self.binder.bind(object.properties.asapy_mode, self.cards.asapy.roll.setAnimatedVisible)
-        self.binder.bind(object.properties.asapy_mode, self.cards.subsets.roll.setAnimatedVisible, lambda x: not x)
+        self.binder.bind(
+            object.properties.asapy_mode, self.cards.asapy.roll.setAnimatedVisible
+        )
+        self.binder.bind(
+            object.properties.asapy_mode,
+            self.cards.subsets.roll.setAnimatedVisible,
+            lambda x: not x,
+        )
 
         self.binder.bind(object.properties.subset_path, self.cards.subsets.set_path)
         self.binder.bind(self.cards.subsets.selectedPath, object.open)
 
-        self.binder.bind(object.asapy_options.properties.input_path, self.cards.asapy.set_path)
-        self.binder.bind(self.cards.asapy.selectedPath, object.asapy_options.properties.input_path)
+        self.binder.bind(
+            object.asapy_options.properties.input_path, self.cards.asapy.set_path
+        )
+        self.binder.bind(
+            self.cards.asapy.selectedPath, object.asapy_options.properties.input_path
+        )
 
         self.binder.bind(object.properties.output_path, self.cards.output.set_path)
         self.binder.bind(self.cards.output.selectedPath, object.properties.output_path)
@@ -313,23 +344,46 @@ class View(BlastTaskView):
         self.binder.bind(object.properties.coord_path, self.cards.coords.set_path)
         self.binder.bind(self.cards.coords.selectedPath, object.properties.coord_path)
 
-        self.binder.bind(object.properties.morphometrics_path, self.cards.morphometrics.set_path)
-        self.binder.bind(self.cards.morphometrics.selectedPath, object.properties.morphometrics_path)
+        self.binder.bind(
+            object.properties.morphometrics_path, self.cards.morphometrics.set_path
+        )
+        self.binder.bind(
+            self.cards.morphometrics.selectedPath, object.properties.morphometrics_path
+        )
 
         self.cards.sequences.bind_batch_model(self.binder, object.sequence_paths)
 
-        self.cards.options.controls.co_ocurrence_threshold.bind_property(object.properties.co_ocurrence_threshold)
-        self.cards.options.controls.morphometrics_threshold.bind_property(object.properties.morphometrics_threshold)
+        self.cards.options.controls.co_ocurrence_threshold.bind_property(
+            object.properties.co_ocurrence_threshold
+        )
+        self.cards.options.controls.morphometrics_threshold.bind_property(
+            object.properties.morphometrics_threshold
+        )
 
-        self.cards.asapy.controls.number.bind_property(object.asapy_options.properties.number)
-        self.cards.asapy.controls.sequence_length.bind_property(object.asapy_options.properties.sequence_length)
-        self.cards.asapy.controls.seuil_pvalue.bind_property(object.asapy_options.properties.seuil_pvalue)
-        self.cards.asapy.controls.seed.bind_property(object.asapy_options.properties.seed)
-        self.cards.asapy.controls.kimura_rate.bind_property(object.asapy_options.properties.kimura_rate)
+        self.cards.asapy.controls.number.bind_property(
+            object.asapy_options.properties.number
+        )
+        self.cards.asapy.controls.sequence_length.bind_property(
+            object.asapy_options.properties.sequence_length
+        )
+        self.cards.asapy.controls.seuil_pvalue.bind_property(
+            object.asapy_options.properties.seuil_pvalue
+        )
+        self.cards.asapy.controls.seed.bind_property(
+            object.asapy_options.properties.seed
+        )
+        self.cards.asapy.controls.kimura_rate.bind_property(
+            object.asapy_options.properties.kimura_rate
+        )
 
-        self.binder.bind(object.asapy_options.properties.method, self.cards.asapy.controls.method.setValue)
-        self.binder.bind(self.cards.asapy.controls.method.valueChanged, object.asapy_options.properties.method)
-
+        self.binder.bind(
+            object.asapy_options.properties.method,
+            self.cards.asapy.controls.method.setValue,
+        )
+        self.binder.bind(
+            self.cards.asapy.controls.method.valueChanged,
+            object.asapy_options.properties.method,
+        )
 
         self.binder.bind(object.properties.editable, self.setEditable)
 
@@ -355,7 +409,9 @@ class View(BlastTaskView):
         msgBox.setWindowTitle(app.config.title)
         msgBox.setIcon(QtWidgets.QMessageBox.Information)
         msgBox.setText(f"{task_name} completed successfully!")
-        msgBox.setInformativeText(f"Time taken: {human_readable_seconds(results.seconds_taken)}.")
+        msgBox.setInformativeText(
+            f"Time taken: {human_readable_seconds(results.seconds_taken)}."
+        )
 
         msgBox.addButton("Ok", QtWidgets.QMessageBox.RejectRole)
         msgBox.addButton("Score", QtWidgets.QMessageBox.AcceptRole)
@@ -374,8 +430,6 @@ class View(BlastTaskView):
         model_index = app.model.items.find_task(klass)
         if model_index is None:
             model_index = app.model.items.add_task(klass())
-        item = app.model.items.data(
-            model_index, role=app.model.items.ItemRole
-        )
+        item = app.model.items.data(model_index, role=app.model.items.ItemRole)
         item.object.open(results.output_path)
         app.model.items.focus(model_index)
