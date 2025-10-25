@@ -1,7 +1,6 @@
 from itaxotools.spart_parser import Spart
 from itaxotools.taxi2.sequences import Sequences, SequenceHandler
 from itaxotools.taxi2.handlers import FileHandler
-from itaxotools.taxi2.files import is_tabfile
 from itaxotools.haplostats import HaploStats
 from shapely import Polygon, MultiPoint
 from geopy.distance import distance
@@ -12,14 +11,21 @@ from scipy.stats import mannwhitneyu
 import math
 
 
-def convex_hull(individuals: list[str], latlons: dict[str, tuple[float, float]]) -> Polygon:
-    multipoint = MultiPoint([latlons[individual] for individual in individuals if individual in latlons])
+def convex_hull(
+    individuals: list[str], latlons: dict[str, tuple[float, float]]
+) -> Polygon:
+    multipoint = MultiPoint(
+        [latlons[individual] for individual in individuals if individual in latlons]
+    )
     return multipoint.convex_hull
 
 
 def read_latlons_from_spart(path: Path) -> dict[str, tuple[float, float]]:
     spart = Spart.fromXML(path)
-    latlons = {individual: spart.getIndividualLatLon(individual) for individual in spart.getIndividuals()}
+    latlons = {
+        individual: spart.getIndividualLatLon(individual)
+        for individual in spart.getIndividuals()
+    }
     latlons = {k: v for k, v in latlons.items() if v is not None}
     return latlons
 
@@ -83,14 +89,20 @@ def process_polygons(spart: Spart, latlons: dict[str, tuple[float, float]]):
             )
 
 
-def process_coocurrences(spart: Spart, latlons: dict[str, tuple[float, float]], threshold_kilometers: float):
+def process_coocurrences(
+    spart: Spart, latlons: dict[str, tuple[float, float]], threshold_kilometers: float
+):
     for spartition in spart.getSpartitions():
         points = {}
         numbers = {}
 
         for subset in spart.getSpartitionSubsets(spartition):
             individuals = spart.getSubsetIndividuals(spartition, subset)
-            points[subset] = [latlons[individual] for individual in individuals if individual in latlons]
+            points[subset] = [
+                latlons[individual]
+                for individual in individuals
+                if individual in latlons
+            ]
             numbers[subset] = len(points)
 
         kwargs = dict(
@@ -110,7 +122,9 @@ def process_coocurrences(spart: Spart, latlons: dict[str, tuple[float, float]], 
         )
         spart.addConcordance(spartition, "co-occurence boolean", **kwargs)
 
-        for subset_a, subset_b in combinations(spart.getSpartitionSubsets(spartition), 2):
+        for subset_a, subset_b in combinations(
+            spart.getSpartitionSubsets(spartition), 2
+        ):
             points_a = points[subset_a]
             points_b = points[subset_b]
 
@@ -148,8 +162,7 @@ def is_id_allele_of_individual(id: str, individual: str) -> bool:
     return True
 
 
-def process_haplostats(spart: Spart, sequences: Sequences, label: str = ''):
-
+def process_haplostats(spart: Spart, sequences: Sequences, label: str = ""):
     for spartition in spart.getSpartitions():
         stats = HaploStats()
         stats.set_subset_labels(
@@ -211,7 +224,9 @@ def process_haplostats(spart: Spart, sequences: Sequences, label: str = ''):
         )
         spart.addConcordance(spartition, concordance_label_ffr, **kwargs)
 
-        data = stats.get_fields_for_recombination_shared_between_subsets(include_empty=True)
+        data = stats.get_fields_for_recombination_shared_between_subsets(
+            include_empty=True
+        )
         for chunk in data:
             subset_a: str = chunk["subset_a"]
             subset_b: str = chunk["subset_b"]
@@ -244,10 +259,13 @@ def compute_range_gap(a: list[float], b: list[float]) -> float:
     return max(min(a), min(b)) - min(max(a), max(b))
 
 
-def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, float], alpha: float | None = None):
-
+def process_morphometrics(
+    spart: Spart,
+    label: str,
+    individual_data: dict[str, float],
+    alpha: float | None = None,
+):
     for spartition in spart.getSpartitions():
-
         subset_data = defaultdict(list)
         numbers = {}
 
@@ -261,7 +279,9 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
         concordance_label_u = f"Mann-Whitney U-stat for {label}"
         concordance_label_p = f"Mann-Whitney P-value for {label}"
         concordance_label_b = f"Mann-Whitney P-value for {label} (Bonferroni corrected)"
-        concordance_label_s = f"Mann-Whitney significance for {label} (Bonferroni corrected)"
+        concordance_label_s = (
+            f"Mann-Whitney significance for {label} (Bonferroni corrected)"
+        )
         concordance_label_g = f"Measurement gap for {label}"
 
         kwargs = dict(
@@ -301,13 +321,14 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
         k = math.comb(len(subset_data), 2)
 
         for subset_a, subset_b in combinations(subset_data.keys(), 2):
-
             if len(subset_data[subset_a]) < 2:
                 continue
             if len(subset_data[subset_b]) < 2:
                 continue
 
-            u, p = mannwhitneyu(subset_data[subset_a], subset_data[subset_b], alternative="two-sided")
+            u, p = mannwhitneyu(
+                subset_data[subset_a], subset_data[subset_b], alternative="two-sided"
+            )
             g = compute_range_gap(subset_data[subset_a], subset_data[subset_b])
 
             spart.addConcordantLimit(
@@ -359,7 +380,9 @@ def process_morphometrics(spart: Spart, label: str, individual_data: dict[str, f
             )
 
 
-def process_morphometrics_multiple(spart: Spart, data: dict[str, dict], alpha: float = None):
+def process_morphometrics_multiple(
+    spart: Spart, data: dict[str, dict], alpha: float = None
+):
     for header in data:
         process_morphometrics(spart, header, data[header], alpha)
 

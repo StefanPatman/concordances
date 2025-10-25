@@ -8,6 +8,7 @@ from itaxotools.taxi_gui.tasks.common.view import ProgressCard
 from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.widgets import NoWheelComboBox, RadioButtonGroup
+from itaxotools.taxi_gui.utility import human_readable_seconds
 
 from ..common.view import (
     BlastTaskView,
@@ -15,9 +16,11 @@ from ..common.view import (
     PathSelector,
     BatchSequenceSelector,
 )
+from ..common.types import Results
 from ..common.widgets import FloatPropertyLineEdit, IntPropertyLineEdit
 from .types import SubstitutionModel
 from . import long_description, pixmap_medium, title
+from ..score.model import Model as ScoreModel
 
 
 class PathFileSelector(PathSelector):
@@ -299,7 +302,7 @@ class View(BlastTaskView):
         self.binder.bind(object.properties.asapy_mode, self.cards.subsets.roll.setAnimatedVisible, lambda x: not x)
 
         self.binder.bind(object.properties.subset_path, self.cards.subsets.set_path)
-        self.binder.bind(self.cards.subsets.selectedPath, object.properties.subset_path)
+        self.binder.bind(self.cards.subsets.selectedPath, object.open)
 
         self.binder.bind(object.asapy_options.properties.input_path, self.cards.asapy.set_path)
         self.binder.bind(self.cards.asapy.selectedPath, object.asapy_options.properties.input_path)
@@ -344,3 +347,35 @@ class View(BlastTaskView):
         if not filename:
             return
         self.object.open(Path(filename))
+
+    def report_results(self, task_name: str, results: Results):
+        msgBox = QtWidgets.QMessageBox(self.window())
+        msgBox.setWindowModality(QtCore.Qt.WindowModal)
+        msgBox.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint)
+        msgBox.setWindowTitle(app.config.title)
+        msgBox.setIcon(QtWidgets.QMessageBox.Information)
+        msgBox.setText(f"{task_name} completed successfully!")
+        msgBox.setInformativeText(f"Time taken: {human_readable_seconds(results.seconds_taken)}.")
+
+        msgBox.addButton("Ok", QtWidgets.QMessageBox.RejectRole)
+        msgBox.addButton("Score", QtWidgets.QMessageBox.AcceptRole)
+
+        self.window().msgShow(msgBox)
+
+        role = msgBox.buttonRole(msgBox.clickedButton())
+
+        match role:
+            case QtWidgets.QMessageBox.AcceptRole:
+                self.propagate_reults_to_model(ScoreModel, results)
+            case QtWidgets.QMessageBox.RejectRole:
+                pass
+
+    def propagate_reults_to_model(self, klass, results: Results):
+        model_index = app.model.items.find_task(klass)
+        if model_index is None:
+            model_index = app.model.items.add_task(klass())
+        item = app.model.items.data(
+            model_index, role=app.model.items.ItemRole
+        )
+        item.object.open(results.output_path)
+        app.model.items.focus(model_index)

@@ -50,7 +50,9 @@ class ElidedLineEdit(GLineEdit):
 
     def updateElidedText(self):
         metrics = QtGui.QFontMetrics(self.font())
-        length = self.width() - self.textMargins().left() - self.textMargins().right() - 8
+        length = (
+            self.width() - self.textMargins().left() - self.textMargins().right() - 8
+        )
         elided_text = metrics.elidedText(self.full_text, QtCore.Qt.ElideLeft, length)
         QtWidgets.QLineEdit.setText(self, elided_text)
 
@@ -77,7 +79,9 @@ class ElidedLongLabel(QtWidgets.QLabel):
 
     def updateText(self):
         metrics = self.fontMetrics()
-        elided_text = metrics.elidedText(self._full_text, QtCore.Qt.ElideRight, self.width())
+        elided_text = metrics.elidedText(
+            self._full_text, QtCore.Qt.ElideRight, self.width()
+        )
         super().setText(elided_text)
 
     def copy(self):
@@ -108,7 +112,9 @@ class FrontEllipsisDelegate(QtWidgets.QStyledItemDelegate):
         metrics = QtGui.QFontMetrics(option.font)
         elided_text = metrics.elidedText(text, QtCore.Qt.ElideLeft, text_rect.width())
 
-        painter.drawText(text_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, elided_text)
+        painter.drawText(
+            text_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, elided_text
+        )
 
         painter.restore()
 
@@ -163,7 +169,9 @@ class BlastComboboxDelegate(QtWidgets.QStyledItemDelegate):
 
         self.initStyleOption(option, index)
         option.text = index.data(BlastMethodCombobox.LabelRole)
-        QtWidgets.QApplication.style().drawControl(QtWidgets.QStyle.CE_ItemViewItem, option, painter)
+        QtWidgets.QApplication.style().drawControl(
+            QtWidgets.QStyle.CE_ItemViewItem, option, painter
+        )
 
     def sizeHint(self, option, index):
         height = self.parent().sizeHint().height()
@@ -191,7 +199,9 @@ class BlastMethodCombobox(NoWheelComboBox):
         self.setItemDelegate(delegate)
 
         metrics = self.fontMetrics()
-        length = max([metrics.horizontalAdvance(method.label) for method in BlastMethod])
+        length = max(
+            [metrics.horizontalAdvance(method.label) for method in BlastMethod]
+        )
         self.view().setMinimumWidth(length + 16)
 
         self.currentIndexChanged.connect(self._handle_index_changed)
@@ -225,7 +235,9 @@ class BlastOutfmtCombobox(NoWheelComboBox):
         self.setItemDelegate(delegate)
 
         metrics = self.fontMetrics()
-        length = max([metrics.horizontalAdvance(method.label) for method in BlastMethod])
+        length = max(
+            [metrics.horizontalAdvance(method.label) for method in BlastMethod]
+        )
         self.view().setMinimumWidth(length + 16)
 
         self.currentIndexChanged.connect(self._handle_index_changed)
@@ -351,7 +363,9 @@ class GDoubleSpinBox(QtWidgets.QDoubleSpinBox):
 class BatchQueryHelp(QtWidgets.QPlainTextEdit):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setPlaceholderText("Sequences to match against database contents (FASTA or FASTQ)")
+        self.setPlaceholderText(
+            "Sequences to match against database contents (FASTA or FASTQ)"
+        )
         self.setEnabled(False)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,

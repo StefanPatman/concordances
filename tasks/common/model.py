@@ -64,7 +64,9 @@ class PathListModel(QtCore.QAbstractListModel):
     def add_paths(self, paths: list[Path]):
         paths = [path for path in paths if path not in self.paths]
         paths.sort()
-        self.beginInsertRows(QtCore.QModelIndex(), self.rowCount(), self.rowCount() + len(paths))
+        self.beginInsertRows(
+            QtCore.QModelIndex(), self.rowCount(), self.rowCount() + len(paths)
+        )
         for path in paths:
             self.paths.append(path)
         self.endInsertRows()

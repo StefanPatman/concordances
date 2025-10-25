@@ -131,3 +131,7 @@ class Model(BlastTaskModel):
     def reset_asapy(self):
         if self.asapy_mode:
             self.worker.reset()
+
+    def open(self, path: Path):
+        self.subset_path = path
+        self.output_path = path.with_stem(path.stem + "_concordances")

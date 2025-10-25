@@ -5,10 +5,8 @@ from pathlib import Path
 from itaxotools.common.bindings import Binder
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.utility import human_readable_seconds
-from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import ScrollTaskView
-from itaxotools.taxi_gui.view.widgets import RadioButtonGroup
 
 from .model import BatchSequenceModel, BatchFileModel
 from .types import BatchResults, DoubleBatchResults, Results, WarnResults
@@ -16,7 +14,11 @@ from .widgets import BatchQueryHelp, ElidedLineEdit, ElidedLongLabel, GrowingLis
 
 
 class BlastTaskView(ScrollTaskView):
-    def report_results(self, task_name: str, results: Results | BatchResults | DoubleBatchResults | WarnResults):
+    def report_results(
+        self,
+        task_name: str,
+        results: Results | BatchResults | DoubleBatchResults | WarnResults,
+    ):
         if isinstance(results, Results):
             self.report_results_single(task_name, results)
         elif isinstance(results, BatchResults):
@@ -31,7 +33,9 @@ class BlastTaskView(ScrollTaskView):
         msgBox.setWindowTitle(app.config.title)
         msgBox.setIcon(QtWidgets.QMessageBox.Information)
         msgBox.setText(f"{task_name} completed successfully!")
-        msgBox.setInformativeText(f"Time taken: {human_readable_seconds(results.seconds_taken)}.")
+        msgBox.setInformativeText(
+            f"Time taken: {human_readable_seconds(results.seconds_taken)}."
+        )
         msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open)
         button = self.window().msgShow(msgBox)
         if button == QtWidgets.QMessageBox.Open:
@@ -54,7 +58,9 @@ class BlastTaskView(ScrollTaskView):
                 + "\n".join(f"- {path.name}" for path in results.failed)
                 + "\n"
             )
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open)
+            msgBox.setStandardButtons(
+                QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open
+            )
             msgBox.setStyleSheet("QMessageBox { min-width: 400px; }")
             button = self.window().msgShow(msgBox)
             if button == QtWidgets.QMessageBox.Open:
@@ -67,7 +73,9 @@ class BlastTaskView(ScrollTaskView):
         else:
 
             def log_report_for_database(database: Path, queries: list[Path]) -> str:
-                return f"- For database {database.name}:\n" + "\n".join(f"* {path.name}" for path in queries)
+                return f"- For database {database.name}:\n" + "\n".join(
+                    f"* {path.name}" for path in queries
+                )
 
             error_count = sum(len(queries) for queries in results.failed.values())
 
@@ -81,11 +89,14 @@ class BlastTaskView(ScrollTaskView):
             msgBox.setDetailedText(
                 "Error logs were written for the following files:\n\n"
                 + "\n\n".join(
-                    log_report_for_database(database, queries) for database, queries in results.failed.items()
+                    log_report_for_database(database, queries)
+                    for database, queries in results.failed.items()
                 )
                 + "\n"
             )
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open)
+            msgBox.setStandardButtons(
+                QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open
+            )
             msgBox.setStyleSheet("QMessageBox { min-width: 400px; }")
             button = self.window().msgShow(msgBox)
             if button == QtWidgets.QMessageBox.Open:
@@ -103,8 +114,12 @@ class BlastTaskView(ScrollTaskView):
             msgBox.setInformativeText(
                 f"Time taken: {human_readable_seconds(results.seconds_taken)}.\nSee below for details."
             )
-            msgBox.setDetailedText("\n".join(f"- {warn}" for warn in results.warnings) + "\n")
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open)
+            msgBox.setDetailedText(
+                "\n".join(f"- {warn}" for warn in results.warnings) + "\n"
+            )
+            msgBox.setStandardButtons(
+                QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Open
+            )
             msgBox.setStyleSheet("QMessageBox { min-width: 400px; }")
             button = self.window().msgShow(msgBox)
             if button == QtWidgets.QMessageBox.Open:
@@ -115,7 +130,9 @@ class BlastTaskView(ScrollTaskView):
         msgBox = QtWidgets.QMessageBox(self.window())
         msgBox.setWindowTitle(f"{app.config.title} - Warning")
         msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+        msgBox.setStandardButtons(
+            QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel
+        )
         msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
 
         if path is None:
@@ -251,7 +268,9 @@ class PathDirectorySelector(PathSelector):
 class PathDatabaseSelector(PathSelector):
     def _handle_browse(self, *args):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=self.window(), caption=f"{app.config.title} - Browse file", filter="BLAST databases (*.nin *.pin)"
+            parent=self.window(),
+            caption=f"{app.config.title} - Browse file",
+            filter="BLAST databases (*.nin *.pin)",
         )
         if not filename:
             return
@@ -432,19 +451,33 @@ class BatchSequenceSelector(Card):
         binder.bind(self.requestedAddFolder, object.add_folder)
 
         binder.bind(object.properties.file_list_total, self.set_batch_total)
-        binder.bind(object.properties.file_list_rows, self.set_batch_help_visible, proxy=lambda x: x == 0)
+        binder.bind(
+            object.properties.file_list_rows,
+            self.set_batch_help_visible,
+            proxy=lambda x: x == 0,
+        )
 
-        binder.bind(object.file_list.rowsInserted, self.controls.batch_view.updateGeometry)
-        binder.bind(object.file_list.rowsRemoved, self.controls.batch_view.updateGeometry)
-        binder.bind(object.file_list.modelReset, self.controls.batch_view.updateGeometry)
+        binder.bind(
+            object.file_list.rowsInserted, self.controls.batch_view.updateGeometry
+        )
+        binder.bind(
+            object.file_list.rowsRemoved, self.controls.batch_view.updateGeometry
+        )
+        binder.bind(
+            object.file_list.modelReset, self.controls.batch_view.updateGeometry
+        )
 
 
 class BatchDatabaseSelector(BatchSequenceSelector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.controls.label.setText("Database mode:")
-        self.controls.single_field.setPlaceholderText("Match all query sequences against this database")
-        self.controls.batch_help.setPlaceholderText("Match all query sequences against these databases")
+        self.controls.single_field.setPlaceholderText(
+            "Match all query sequences against this database"
+        )
+        self.controls.batch_help.setPlaceholderText(
+            "Match all query sequences against these databases"
+        )
         self.controls.single_database = self.controls.single_query
         self.controls.batch_database = self.controls.batch_query
 
