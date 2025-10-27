@@ -1,7 +1,8 @@
 from PySide6 import QtCore
 from pathlib import Path
+from collections import defaultdict
 
-from itaxotools.common.bindings import Property
+from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel
 from itaxotools.taxi_gui.threading import ReportDone
 from . import process, title
@@ -19,11 +20,144 @@ class VersionSubtaskModel(SubtaskModel):
         self.busy = False
 
 
+class ConcordanceModel(QtCore.QAbstractTableModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.headers = [
+            "Evidence name",
+            "Evidence type",
+            "Data Type",
+            "Discr. Type",
+            "Discr. Data Type",
+            "Weight",
+        ]
+        self.keys = [
+            "evidenceName",
+            "evidenceType",
+            "evidenceDataType",
+            "evidenceDiscriminationType",
+            "evidenceDiscriminationDataType",
+        ]
+        self.ids: dict[str, int] = {}
+        self.checked: dict[str, bool] = {}
+        self.weights: dict[str, float] = {}
+
+        self.rows = []
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self.rows)
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return len(self.headers)
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        row = self.rows[index.row()]
+        col = index.column()
+        id = row.get("evidenceName", None)
+
+        if role == QtCore.Qt.DisplayRole:
+            if col < 5:
+                return row.get(self.keys[col], "")
+            if col == 5:
+                return f"{self.weights[id]:.2f}"
+
+        if role == QtCore.Qt.CheckStateRole:
+            if col == 0:
+                if self.checked[id]:
+                    return QtCore.Qt.Checked
+                else:
+                    return QtCore.Qt.Unchecked
+            return None
+
+        if role == QtCore.Qt.EditRole:
+            if col == 5:
+                return self.weights[id]
+            return None
+
+        return None
+
+    def flags(self, index):
+        if not index.isValid():
+            return QtCore.Qt.NoItemFlags
+
+        col = index.column()
+        flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
+
+        if col == 0:
+            flags |= QtCore.Qt.ItemIsUserCheckable
+        elif col == 5:
+            flags |= QtCore.Qt.ItemIsEditable
+
+        return flags
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        row = self.rows[index.row()]
+        col = index.column()
+        id = row.get("evidenceName", None)
+
+        if col == 0 and role == QtCore.Qt.CheckStateRole:
+            state = QtCore.Qt.CheckState(value)
+            self.checked[id] = bool(state == QtCore.Qt.Checked)
+            self.dataChanged.emit(index, index, [QtCore.Qt.CheckStateRole])
+            return True
+
+        elif col == 5 and role == QtCore.Qt.EditRole:
+            try:
+                self.weights[id] = float(value)
+                self.dataChanged.emit(index, index, [QtCore.Qt.DisplayRole])
+                return True
+            except ValueError:
+                return False
+
+        return False
+
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
+            return self.headers[section]
+        return None
+
+    def clear(self):
+        if not self.rows:
+            return
+        self.beginRemoveRows(QtCore.QModelIndex(), 0, len(self.rows) - 1)
+        self.rows.clear()
+        self.checked.clear()
+        self.weights.clear()
+        self.endRemoveRows()
+
+    def insertRows(
+        self,
+        row_datas: list[dict[str, str]],
+        checked_dict: dict[str, bool],
+        weight_dict: dict[str, float],
+    ):
+        if not row_datas:
+            return
+        first = len(self.rows)
+        last = first + len(row_datas) - 1
+        self.beginInsertRows(QtCore.QModelIndex(), first, last)
+        for i, (id, row_data) in enumerate(row_datas.items()):
+            row_data["evidenceName"] = id
+            self.rows.append(row_data)
+            self.ids[id] = first + i
+            self.checked[id] = checked_dict[id]
+            self.weights[id] = weight_dict[id]
+        self.endInsertRows()
+
+
 class Model(BlastTaskModel):
     task_name = title
 
     concordance_path = Property(Path, Path())
     output_path = Property(Path, Path())
+
+    concordances = Property(ConcordanceModel, Instance)
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -44,9 +178,13 @@ class Model(BlastTaskModel):
 
         self.subtask_init.start(process.initialize)
 
-    def _handle_open_results(self, results: OpenResults):
-        # Update a table model with results
-        pass
+    def _handle_open_results(self, results: ReportDone):
+        self.concordances.clear()
+        self.concordances.insertRows(
+            results.result.concordance_data,
+            defaultdict(lambda: True),
+            defaultdict(lambda: 1.0),
+        )
 
     def isReady(self):
         if self.concordance_path == Path():
@@ -70,5 +208,9 @@ class Model(BlastTaskModel):
 
     def open(self, path: Path):
         self.concordance_path = path
+        if not path.is_file():
+            self.output_path = Path()
+            self.concordances.clear()
+            return
         self.output_path = path.with_stem(path.stem + "_scored")
         self.subtask_open.start(process.open_spart, path)

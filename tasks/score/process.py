@@ -17,6 +17,9 @@ def initialize():
 def open_spart(path: Path):
     from itaxotools.spart_parser import Spart
 
+    if not path.is_file():
+        return OpenResults({}, {})
+
     spart = Spart.fromXML(path)
 
     spartition_data: dict[str, list[str]] = {}
