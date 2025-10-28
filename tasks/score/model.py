@@ -1,6 +1,5 @@
 from PySide6 import QtCore
 from pathlib import Path
-from collections import defaultdict
 
 from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel
@@ -26,9 +25,9 @@ class ConcordanceModel(QtCore.QAbstractTableModel):
         self.headers = [
             "Evidence name",
             "Evidence type",
-            "Data Type",
-            "Discr. Type",
-            "Discr. Data Type",
+            "Data type",
+            "Discr. type",
+            "Discr. data type",
             "Weight",
         ]
         self.keys = [
@@ -151,6 +150,48 @@ class ConcordanceModel(QtCore.QAbstractTableModel):
         self.endInsertRows()
 
 
+class BooleanFilterProxyModel(QtCore.QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._show_boolean_only = False
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        if not self._show_boolean_only:
+            return True
+
+        model = self.sourceModel()
+        index = model.index(source_row, 0, source_parent)
+        if not index.isValid():
+            return False
+
+        row_data = model.rows[source_row]
+        dtype = row_data.get("evidenceDiscriminationDataType", "")
+        return dtype == "Boolean"
+
+    def flags(self, index):
+        if not index.isValid():
+            return QtCore.Qt.NoItemFlags
+
+        src_index = self.mapToSource(index)
+        model = self.sourceModel()
+        row_data = model.rows[src_index.row()]
+
+        base_flags = super().flags(index)
+
+        if row_data.get("evidenceDiscriminationDataType", "") != "Boolean":
+            base_flags &= ~QtCore.Qt.ItemIsEnabled
+            base_flags &= ~QtCore.Qt.ItemIsEditable
+            base_flags &= ~QtCore.Qt.ItemIsUserCheckable
+
+        return base_flags
+
+    def show_boolean_only(self, enabled: bool):
+        self._show_boolean_only = enabled
+        self.beginResetModel()
+        self.invalidateFilter()
+        self.endResetModel()
+
+
 class Model(BlastTaskModel):
     task_name = title
 
@@ -158,6 +199,7 @@ class Model(BlastTaskModel):
     output_path = Property(Path, Path())
 
     concordances = Property(ConcordanceModel, Instance)
+    bool_only = Property(bool, True)
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -180,10 +222,19 @@ class Model(BlastTaskModel):
 
     def _handle_open_results(self, results: ReportDone):
         self.concordances.clear()
+
+        checked_dict = {
+            id: bool(data["evidenceDiscriminationDataType"] == "Boolean")
+            for id, data in results.result.concordance_data.items()
+        }
+        weights_dict = {
+            id: 1.0 if checked else 0.0 for id, checked in checked_dict.items()
+        }
+
         self.concordances.insertRows(
             results.result.concordance_data,
-            defaultdict(lambda: True),
-            defaultdict(lambda: 1.0),
+            checked_dict,
+            weights_dict,
         )
 
     def isReady(self):

@@ -22,12 +22,10 @@ def open_spart(path: Path):
 
     spart = Spart.fromXML(path)
 
-    spartition_data: dict[str, list[str]] = {}
     concordance_data: dict[str, dict[str, object]] = {}
 
     for spartition in spart.getSpartitions():
         concordances = spart.getSpartitionConcordances(spartition)
-        spartition_data[spartition] = concordances
         for concordance in concordances:
             data = spart.getConcordanceData(spartition, concordance)
             if concordance not in concordance_data:
@@ -35,7 +33,7 @@ def open_spart(path: Path):
             else:
                 assert concordance_data[concordance] == data
 
-    return OpenResults(spartition_data, concordance_data)
+    return OpenResults(concordance_data)
 
 
 def execute(

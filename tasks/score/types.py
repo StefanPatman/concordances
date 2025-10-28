@@ -10,5 +10,4 @@ class Results(NamedTuple):
 
 
 class OpenResults(NamedTuple):
-    spartition_data: dict[str, list[str]]
     concordance_data: dict[str, dict[str]]

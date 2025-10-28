@@ -13,6 +13,7 @@ from ..common.view import (
     PathSelector,
 )
 from . import long_description, pixmap_medium, title
+from .model import BooleanFilterProxyModel
 
 
 class PathFileSelector(PathSelector):
@@ -58,8 +59,10 @@ class CheckableTableView(QtWidgets.QTableView):
     def mouseDoubleClickEvent(self, event):
         index = self.indexAt(event.position().toPoint())
         if not index.isValid():
-            super().mouseDoubleClickEvent(event)
-            return
+            return super().mouseDoubleClickEvent(event)
+
+        if not index.flags() & QtCore.Qt.ItemIsEnabled:
+            return super().mouseDoubleClickEvent(event)
 
         model = index.model()
         row = index.row()
@@ -76,7 +79,7 @@ class CheckableTableView(QtWidgets.QTableView):
             )
             model.setData(checkbox_index, new_state, QtCore.Qt.CheckStateRole)
         else:
-            super().mouseDoubleClickEvent(event)
+            return super().mouseDoubleClickEvent(event)
 
     def resize_height_to_contents(self):
         if not self.model():
@@ -100,6 +103,8 @@ class CheckableTableView(QtWidgets.QTableView):
 
 
 class ConcordanceTableCard(Card):
+    toggled_bool_only = QtCore.Signal(bool)
+
     def __init__(self, text, parent=None):
         super().__init__(parent)
         self.draw_main(text)
@@ -115,21 +120,39 @@ class ConcordanceTableCard(Card):
         header = view.horizontalHeader()
         header.setStretchLastSection(True)
 
+        checkbox = QtWidgets.QCheckBox(
+            "Show boolean discrimination data types only (the rest are ignored anyway)"
+        )
+        checkbox.toggled.connect(self.toggled_bool_only)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(label)
+        layout.addSpacing(8)
         layout.addWidget(view, 1)
-        layout.setSpacing(16)
+        layout.addWidget(checkbox)
+        layout.setSpacing(8)
         self.addLayout(layout)
 
         self.controls.view = view
+        self.controls.bool_only = checkbox
 
     def set_model(self, model: QtCore.QAbstractTableModel):
-        proxy = QtCore.QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        proxy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        proxy.setDynamicSortFilter(True)
+        bool_proxy = BooleanFilterProxyModel()
+        bool_proxy.setSourceModel(model)
+        bool_proxy.show_boolean_only(True)
 
-        self.controls.view.setModel(proxy)
+        sort_proxy = QtCore.QSortFilterProxyModel()
+        sort_proxy.setSourceModel(bool_proxy)
+        sort_proxy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        sort_proxy.setDynamicSortFilter(True)
+
+        self.controls.view.setModel(sort_proxy)
+        self.controls.bool_proxy = bool_proxy
+
+    def set_bool_only(self, value: bool):
+        self.controls.bool_only.setChecked(value)
+        self.controls.bool_proxy.show_boolean_only(value)
+        self.resize_view()
 
     def resize_view(self):
         self.controls.view.resizeColumnsToContents()
@@ -149,7 +172,7 @@ class View(BlastTaskView):
         self.cards.progress = ProgressCard(self)
         self.cards.concordances = PathFileSelector("\u25C0  Input", self)
         self.cards.output = PathFileOutSelector("\u25B6  Output", self)
-        self.cards.table = ConcordanceTableCard("\u25E6  Concordances", self)
+        self.cards.table = ConcordanceTableCard("\u25E6  Concordance weights", self)
 
         self.cards.concordances.set_placeholder_text(
             "SPART XML file conbtaining concordances"
@@ -186,6 +209,11 @@ class View(BlastTaskView):
             object.properties.concordance_path, self.cards.concordances.set_path
         )
         self.binder.bind(self.cards.concordances.selectedPath, object.open)
+
+        self.binder.bind(object.properties.bool_only, self.cards.table.set_bool_only)
+        self.binder.bind(
+            self.cards.table.toggled_bool_only, object.properties.bool_only
+        )
 
         self.binder.bind(object.properties.output_path, self.cards.output.set_path)
         self.binder.bind(self.cards.output.selectedPath, object.properties.output_path)
