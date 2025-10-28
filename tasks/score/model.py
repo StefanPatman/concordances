@@ -1,5 +1,6 @@
 from PySide6 import QtCore
 from pathlib import Path
+from collections import defaultdict
 
 from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel
@@ -41,7 +42,7 @@ class ConcordanceModel(QtCore.QAbstractTableModel):
         self.checked: dict[str, bool] = {}
         self.weights: dict[str, float] = {}
 
-        self.rows = []
+        self.rows: list[dict] = []
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self.rows)
@@ -192,6 +193,124 @@ class BooleanFilterProxyModel(QtCore.QSortFilterProxyModel):
         self.endResetModel()
 
 
+class EvidenceTypeModel(QtCore.QAbstractTableModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.headers = [
+            "Evidence type",
+            "Weight",
+            "Member weighting behaviour",
+        ]
+        self.checked: dict[str, bool] = {}
+        self.weights: dict[str, float] = {}
+
+        self.rows: list[str] = []
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self.rows)
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return len(self.headers)
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        dtype = self.rows[index.row()]
+        col = index.column()
+
+        if role == QtCore.Qt.DisplayRole:
+            if col == 0:
+                return dtype
+            elif col == 1:
+                return f"{self.weights[dtype]:.2f}"
+            elif col == 2:
+                return "Weigh by number of variables"
+
+        if role == QtCore.Qt.CheckStateRole:
+            if col == 2:
+                if self.checked[dtype]:
+                    return QtCore.Qt.Checked
+                else:
+                    return QtCore.Qt.Unchecked
+            return None
+
+        if role == QtCore.Qt.EditRole:
+            if col == 1:
+                return self.weights[dtype]
+            return None
+
+        return None
+
+    def flags(self, index):
+        if not index.isValid():
+            return QtCore.Qt.NoItemFlags
+
+        col = index.column()
+        flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
+
+        if col == 1:
+            flags |= QtCore.Qt.ItemIsEditable
+        elif col == 2:
+            flags |= QtCore.Qt.ItemIsUserCheckable
+
+        return flags
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        dtype = self.rows[index.row()]
+        col = index.column()
+
+        if col == 2 and role == QtCore.Qt.CheckStateRole:
+            state = QtCore.Qt.CheckState(value)
+            self.checked[dtype] = bool(state == QtCore.Qt.Checked)
+            self.dataChanged.emit(index, index, [QtCore.Qt.CheckStateRole])
+            return True
+
+        elif col == 1 and role == QtCore.Qt.EditRole:
+            try:
+                self.weights[dtype] = float(value)
+                self.dataChanged.emit(index, index, [QtCore.Qt.DisplayRole])
+                return True
+            except ValueError:
+                return False
+
+        return False
+
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
+            return self.headers[section]
+        return None
+
+    def clear(self):
+        if not self.rows:
+            return
+        self.beginRemoveRows(QtCore.QModelIndex(), 0, len(self.rows) - 1)
+        self.rows.clear()
+        self.checked.clear()
+        self.weights.clear()
+        self.endRemoveRows()
+
+    def insertRows(
+        self,
+        row_dtypes: list[str],
+        checked_dict: dict[str, bool],
+        weights_dict: dict[str, float],
+    ):
+        if not row_dtypes:
+            return
+        first = len(self.rows)
+        last = first + len(row_dtypes) - 1
+        self.beginInsertRows(QtCore.QModelIndex(), first, last)
+        for i, dtype in enumerate(row_dtypes):
+            self.rows.append(dtype)
+            self.checked[dtype] = checked_dict[dtype]
+            self.weights[dtype] = weights_dict[dtype]
+        self.endInsertRows()
+
+
 class Model(BlastTaskModel):
     task_name = title
 
@@ -199,6 +318,7 @@ class Model(BlastTaskModel):
     output_path = Property(Path, Path())
 
     concordances = Property(ConcordanceModel, Instance)
+    evidence_types = Property(EvidenceTypeModel, Instance)
     bool_only = Property(bool, True)
 
     def __init__(self, name=None):
@@ -221,20 +341,32 @@ class Model(BlastTaskModel):
         self.subtask_init.start(process.initialize)
 
     def _handle_open_results(self, results: ReportDone):
-        self.concordances.clear()
+        concordance_data = results.result.concordance_data
 
         checked_dict = {
-            id: bool(data["evidenceDiscriminationDataType"] == "Boolean")
-            for id, data in results.result.concordance_data.items()
+            id: bool(row_data["evidenceDiscriminationDataType"] == "Boolean")
+            for id, row_data in concordance_data.items()
         }
         weights_dict = {
             id: 1.0 if checked else 0.0 for id, checked in checked_dict.items()
         }
 
+        self.concordances.clear()
         self.concordances.insertRows(
-            results.result.concordance_data,
-            checked_dict,
-            weights_dict,
+            row_datas=concordance_data,
+            checked_dict=checked_dict,
+            weight_dict=weights_dict,
+        )
+
+        evidence_types_set = {
+            row_data["evidenceType"] for row_data in concordance_data.values()
+        }
+
+        self.evidence_types.clear()
+        self.evidence_types.insertRows(
+            row_dtypes=list(sorted(evidence_types_set)),
+            checked_dict=defaultdict(lambda: True),
+            weights_dict=defaultdict(lambda: 1.0),
         )
 
     def isReady(self):

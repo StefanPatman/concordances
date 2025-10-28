@@ -47,13 +47,19 @@ class WeightDelegate(QtWidgets.QStyledItemDelegate):
         return editor
 
 
-class CheckableTableView(QtWidgets.QTableView):
+class ConcordanceTableView(QtWidgets.QTableView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._max_rows = 18
         self._min_height = 120
         self._weight_delegate = WeightDelegate()
         self.setItemDelegateForColumn(5, self._weight_delegate)
+
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setSortingEnabled(True)
+        header = self.horizontalHeader()
+        header.setStretchLastSection(True)
+
         self.resize_height_to_contents()
 
     def mouseDoubleClickEvent(self, event):
@@ -114,11 +120,7 @@ class ConcordanceTableCard(Card):
         label.setStyleSheet("""font-size: 16px;""")
         label.setMinimumWidth(150)
 
-        view = CheckableTableView()
-        view.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        view.setSortingEnabled(True)
-        header = view.horizontalHeader()
-        header.setStretchLastSection(True)
+        view = ConcordanceTableView()
 
         checkbox = QtWidgets.QCheckBox(
             "Show boolean discrimination data types only (the rest are ignored anyway)"
@@ -159,6 +161,103 @@ class ConcordanceTableCard(Card):
         self.controls.view.resize_height_to_contents()
 
 
+class EvidenceTypeTableView(QtWidgets.QTableView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._max_rows = 6
+        self._min_height = 80
+        self._weight_delegate = WeightDelegate()
+        self.setItemDelegateForColumn(1, self._weight_delegate)
+
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setSortingEnabled(True)
+        header = self.horizontalHeader()
+        header.setStretchLastSection(True)
+
+        self.resize_height_to_contents()
+
+    def mouseDoubleClickEvent(self, event):
+        index = self.indexAt(event.position().toPoint())
+        if not index.isValid():
+            return super().mouseDoubleClickEvent(event)
+
+        if not index.flags() & QtCore.Qt.ItemIsEnabled:
+            return super().mouseDoubleClickEvent(event)
+
+        model = index.model()
+        row = index.row()
+        col = index.column()
+
+        checkbox_index = model.index(row, 2)
+
+        if col != 1:
+            current = model.data(checkbox_index, QtCore.Qt.CheckStateRole)
+            new_state = (
+                QtCore.Qt.CheckState.Unchecked
+                if current == QtCore.Qt.CheckState.Checked
+                else QtCore.Qt.CheckState.Checked
+            )
+            model.setData(checkbox_index, new_state, QtCore.Qt.CheckStateRole)
+        else:
+            return super().mouseDoubleClickEvent(event)
+
+    def resize_height_to_contents(self):
+        if not self.model():
+            return self._resize_height_to_minimum()
+
+        row_count = min(self.model().rowCount(), self._max_rows)
+        if row_count == 0:
+            return self._resize_height_to_minimum()
+
+        height = self.horizontalHeader().height()
+        for row in range(row_count):
+            height += self.rowHeight(row)
+        height += 2 * self.frameWidth()
+
+        self.setFixedHeight(height)
+        self.resize(self.width(), height)
+
+    def _resize_height_to_minimum(self):
+        self.setFixedHeight(self._min_height)
+        self.resize(self.width(), self._min_height)
+
+
+class EvidenceTypeTableCard(Card):
+    toggled_bool_only = QtCore.Signal(bool)
+
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+        self.draw_main(text)
+
+    def draw_main(self, text):
+        label = QtWidgets.QLabel(text + ":")
+        label.setStyleSheet("""font-size: 16px;""")
+        label.setMinimumWidth(150)
+
+        view = EvidenceTypeTableView()
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label)
+        layout.addSpacing(8)
+        layout.addWidget(view, 1)
+        layout.setSpacing(8)
+        self.addLayout(layout)
+
+        self.controls.view = view
+
+    def set_model(self, model: QtCore.QAbstractTableModel):
+        sort_proxy = QtCore.QSortFilterProxyModel()
+        sort_proxy.setSourceModel(model)
+        sort_proxy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        sort_proxy.setDynamicSortFilter(True)
+
+        self.controls.view.setModel(sort_proxy)
+
+    def resize_view(self):
+        self.controls.view.resizeColumnsToContents()
+        self.controls.view.resize_height_to_contents()
+
+
 class View(BlastTaskView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -172,7 +271,12 @@ class View(BlastTaskView):
         self.cards.progress = ProgressCard(self)
         self.cards.concordances = PathFileSelector("\u25C0  Input", self)
         self.cards.output = PathFileOutSelector("\u25B6  Output", self)
-        self.cards.table = ConcordanceTableCard("\u25E6  Concordance weights", self)
+        self.cards.concordance_table = ConcordanceTableCard(
+            "\u25E6  Concordance weights", self
+        )
+        self.cards.evidence_type_table = EvidenceTypeTableCard(
+            "\u25E6  Evidence type weights", self
+        )
 
         self.cards.concordances.set_placeholder_text(
             "SPART XML file conbtaining concordances"
@@ -194,9 +298,30 @@ class View(BlastTaskView):
         self.object = object
         self.binder.unbind_all()
 
-        self.cards.table.set_model(self.object.concordances)
-        self.binder.bind(object.concordances.rowsInserted, self.cards.table.resize_view)
-        self.binder.bind(object.concordances.rowsRemoved, self.cards.table.resize_view)
+        self.cards.concordance_table.set_model(self.object.concordances)
+        self.binder.bind(
+            object.concordances.rowsInserted, self.cards.concordance_table.resize_view
+        )
+        self.binder.bind(
+            object.concordances.rowsRemoved, self.cards.concordance_table.resize_view
+        )
+
+        self.binder.bind(
+            object.properties.bool_only, self.cards.concordance_table.set_bool_only
+        )
+        self.binder.bind(
+            self.cards.concordance_table.toggled_bool_only, object.properties.bool_only
+        )
+
+        self.cards.evidence_type_table.set_model(self.object.evidence_types)
+        self.binder.bind(
+            object.evidence_types.rowsInserted,
+            self.cards.evidence_type_table.resize_view,
+        )
+        self.binder.bind(
+            object.evidence_types.rowsRemoved,
+            self.cards.evidence_type_table.resize_view,
+        )
 
         self.binder.bind(object.notification, self.showNotification)
         self.binder.bind(object.report_results, self.report_results)
@@ -209,11 +334,6 @@ class View(BlastTaskView):
             object.properties.concordance_path, self.cards.concordances.set_path
         )
         self.binder.bind(self.cards.concordances.selectedPath, object.open)
-
-        self.binder.bind(object.properties.bool_only, self.cards.table.set_bool_only)
-        self.binder.bind(
-            self.cards.table.toggled_bool_only, object.properties.bool_only
-        )
 
         self.binder.bind(object.properties.output_path, self.cards.output.set_path)
         self.binder.bind(self.cards.output.selectedPath, object.properties.output_path)
