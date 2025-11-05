@@ -4,5 +4,7 @@ from typing import NamedTuple
 
 
 class Results(NamedTuple):
-    table: dict[str, dict[str, int]]
+    individual_list: list[str]
+    subset_table: dict[str, dict[str, str]]
+    score_table: dict[str, dict[str, float | bool]]
     seconds_taken: float

@@ -11,6 +11,9 @@ class Model(BlastTaskModel):
     task_name = title
 
     concordance_path = Property(Path, Path())
+    individual_list = Property(list, [])
+    subset_table = Property(dict, [])
+    score_table = Property(dict, [])
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -33,6 +36,9 @@ class Model(BlastTaskModel):
         )
 
     def onDone(self, report: ReportDone):
+        self.individual_list = report.result.individual_list
+        self.subset_table = report.result.subset_table
+        self.score_table = report.result.score_table
         self.report_results.emit(self.task_name, report.result)
         self.busy = False
 

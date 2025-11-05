@@ -29,7 +29,7 @@ class View(TaskView):
         self.binder.bind(object.report_results, self.report_results)
 
     def report_results(self, task_name: str, results: Results):
-        pass
+        print(results.individual_list)
 
     def open(self):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
