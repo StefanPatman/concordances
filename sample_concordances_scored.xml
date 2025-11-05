@@ -16,7 +16,7 @@
 		<individual id="individual_13" locality="B" decimalLatitude="42.0" decimalLongitude="42.0"/>
 	</individuals>
 	<spartitions>
-		<spartition label="1" CSU="8.0" CSW="1.3333333333333333" CSWC="1.277777777777778" CC="True" HC="True">
+		<spartition label="1" CSU="8.0" CSW="1.3333333333333333" CSWC="1.277777777777778" CC="Yes" HC="No">
 			<subsets>
 				<subset label="1">
 					<individual ref="individual_1"/>

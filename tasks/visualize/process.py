@@ -50,7 +50,7 @@ def execute(
             if isinstance(value, str):
                 if value == "Yes":
                     return True
-                if value == "False":
+                if value == "No":
                     return False
             return value
 
