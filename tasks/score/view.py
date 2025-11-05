@@ -1,4 +1,4 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 
 from pathlib import Path
 
@@ -6,11 +6,14 @@ from itaxotools.common.utility import AttrDict
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.tasks.common.view import ProgressCard
 from itaxotools.taxi_gui.view.cards import Card
+from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 
+from ..common.widgets import GrowingTextEdit
 from ..common.view import (
     BlastTaskView,
     GraphicTitleCard,
     PathSelector,
+    OptionCard,
 )
 from . import long_description, pixmap_medium, title
 from .model import BooleanFilterProxyModel
@@ -258,6 +261,116 @@ class EvidenceTypeTableCard(Card):
         self.controls.view.resize_height_to_contents()
 
 
+class IndividualRestrainsView(OptionCard):
+    individualActivated = QtCore.Signal(str)
+    list_placeholder = (
+        "List of individuals, one per line."
+        "\n"
+        "Groups are separated by one or more empty lines."
+        "\n"
+        "Double-click an item on the right to add it."
+        "\n"
+        "\n"
+        "Example:"
+        "\n"
+        "\n"
+        "group_A_individual_1"
+        "\n"
+        "group_A_individual_2"
+        "\n"
+        "group_A_individual_3"
+        "\n"
+        "\n"
+        "group_B_individual_4"
+        "\n"
+        "group_B_individual_5"
+        "\n"
+    )
+
+    def __init__(self, text, parent=None):
+        super().__init__(text, "", parent)
+        self.draw_main(text)
+        self.individualActivated.connect(self._insert_individual)
+
+    def draw_main(self, text):
+        list = GrowingTextEdit()
+        list.document().setDocumentMargin(8)
+        list.setPlaceholderText(self.list_placeholder)
+
+        view = QtWidgets.QListView()
+        search = QtWidgets.QLineEdit()
+
+        fixed_font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
+        list.setFont(fixed_font)
+        view.setFont(fixed_font)
+
+        view.doubleClicked.connect(self._handle_double_clicked)
+        search.textChanged.connect(self._handle_search_text)
+
+        layout = QtWidgets.QGridLayout()
+        layout.setColumnStretch(0, 1)
+        layout.addWidget(list, 0, 0, 2, 1)
+        layout.addWidget(search, 0, 1, 1, 1)
+        layout.addWidget(view, 1, 1, 1, 1)
+        layout.setSpacing(8)
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+        widget.roll = VerticalRollAnimation(widget)
+        self.addWidget(widget)
+
+        self.controls.options_widget = widget
+        self.controls.list = list
+        self.controls.view = view
+        self.controls.search = search
+
+        self.toggled.connect(self.set_options_visible)
+
+    def set_options_visible(self, value: bool):
+        self.controls.options_widget.roll.setAnimatedVisible(value)
+
+    def set_individuals_model(self, model: QtCore.QAbstractTableModel):
+        proxy = QtCore.QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        proxy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        proxy.setDynamicSortFilter(True)
+        proxy.setFilterKeyColumn(0)
+
+        self.controls.view.setModel(proxy)
+
+    def _handle_search_text(self, text: str):
+        proxy = self.controls.view.model()
+        if not proxy:
+            return
+
+        proxy.setFilterFixedString(text)
+
+    def _handle_double_clicked(self, index):
+        proxy = self.controls.view.model()
+        if not proxy:
+            return
+
+        source_model = proxy.sourceModel()
+        source_index = proxy.mapToSource(index)
+        name = source_model.data(source_index, QtCore.Qt.DisplayRole)
+        if name:
+            self.individualActivated.emit(name)
+
+    def _insert_individual(self, name: str):
+        text_edit = self.controls.list
+        cursor = text_edit.textCursor()
+
+        cursor.movePosition(QtGui.QTextCursor.EndOfBlock)
+
+        block_text = cursor.block().text().strip()
+        if block_text:
+            cursor.insertText("\n")
+
+        cursor.insertText(name)
+        text_edit.setTextCursor(cursor)
+        text_edit.ensureCursorVisible()
+
+
 class View(BlastTaskView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -276,6 +389,12 @@ class View(BlastTaskView):
         )
         self.cards.evidence_type_table = EvidenceTypeTableCard(
             "\u25E6  Evidence type weights", self
+        )
+        self.cards.conspecific_constraints = IndividualRestrainsView(
+            "Conspecific constraints", self
+        )
+        self.cards.heterospecific_constraints = IndividualRestrainsView(
+            "Heterospecific constraints", self
         )
 
         self.cards.concordances.set_placeholder_text(
@@ -337,6 +456,53 @@ class View(BlastTaskView):
 
         self.binder.bind(object.properties.output_path, self.cards.output.set_path)
         self.binder.bind(self.cards.output.selectedPath, object.properties.output_path)
+
+        self.cards.conspecific_constraints.set_individuals_model(
+            self.object.individuals
+        )
+        self.cards.heterospecific_constraints.set_individuals_model(
+            self.object.individuals
+        )
+
+        self.binder.bind(
+            object.properties.conspecific_constraints_enabled,
+            self.cards.conspecific_constraints.setChecked,
+        )
+        self.binder.bind(
+            self.cards.conspecific_constraints.toggled,
+            object.properties.conspecific_constraints_enabled,
+        )
+        self.binder.bind(
+            object.properties.conspecific_constraints_text,
+            self.cards.conspecific_constraints.controls.list.setText,
+        )
+        self.binder.bind(
+            self.cards.conspecific_constraints.controls.list.textEditedSafe,
+            object.properties.conspecific_constraints_text,
+        )
+        self.cards.conspecific_constraints.set_options_visible(
+            object.conspecific_constraints_enabled
+        )
+
+        self.binder.bind(
+            object.properties.heterospecific_constraints_enabled,
+            self.cards.heterospecific_constraints.setChecked,
+        )
+        self.binder.bind(
+            self.cards.heterospecific_constraints.toggled,
+            object.properties.heterospecific_constraints_enabled,
+        )
+        self.binder.bind(
+            object.properties.heterospecific_constraints_text,
+            self.cards.heterospecific_constraints.controls.list.setText,
+        )
+        self.binder.bind(
+            self.cards.heterospecific_constraints.controls.list.textEditedSafe,
+            object.properties.heterospecific_constraints_text,
+        )
+        self.cards.heterospecific_constraints.set_options_visible(
+            object.heterospecific_constraints_enabled
+        )
 
         self.binder.bind(object.properties.editable, self.setEditable)
 

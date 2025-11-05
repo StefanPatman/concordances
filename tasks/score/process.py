@@ -33,12 +33,16 @@ def open_spart(path: Path):
             else:
                 assert concordance_data[concordance] == data
 
-    return OpenResults(concordance_data)
+    individuals_list = spart.getIndividuals()
+
+    return OpenResults(concordance_data, individuals_list)
 
 
 def execute(
     concordance_path: Path,
     output_path: Path,
+    conspecific_constraints: list[list[str]],
+    heterospecific_constraints: list[list[str]],
 ) -> Results:
     from itaxotools.spart_parser import Spart
 
@@ -46,7 +50,8 @@ def execute(
 
     spart = Spart.fromXML(concordance_path)
 
-    pass
+    print(conspecific_constraints)
+    print(heterospecific_constraints)
 
     spart.toXML(output_path)
 

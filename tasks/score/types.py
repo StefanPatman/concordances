@@ -11,3 +11,4 @@ class Results(NamedTuple):
 
 class OpenResults(NamedTuple):
     concordance_data: dict[str, dict[str]]
+    individuals_list: list[str]

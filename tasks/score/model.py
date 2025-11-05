@@ -5,6 +5,7 @@ from collections import defaultdict
 from itaxotools.common.bindings import Property, Instance
 from itaxotools.taxi_gui.model.tasks import SubtaskModel
 from itaxotools.taxi_gui.threading import ReportDone
+from itaxotools.taxi_gui.types import Notification
 from . import process, title
 from ..common.model import BlastTaskModel
 from .types import OpenResults
@@ -20,7 +21,7 @@ class VersionSubtaskModel(SubtaskModel):
         self.busy = False
 
 
-class ConcordanceModel(QtCore.QAbstractTableModel):
+class ConcordanceTableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.headers = [
@@ -193,6 +194,27 @@ class BooleanFilterProxyModel(QtCore.QSortFilterProxyModel):
         self.endResetModel()
 
 
+class IndividualListModel(QtCore.QAbstractListModel):
+    def __init__(self, names=None):
+        super().__init__()
+        self.names = []
+        self.names_set = set()
+        self.set_names(names or [])
+
+    def data(self, index, role):
+        if role == QtCore.Qt.DisplayRole and index.isValid():
+            return self.names[index.row()]
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self.names)
+
+    def set_names(self, names: list[str]):
+        self.beginResetModel()
+        self.names = names
+        self.names_set = set(names)
+        self.endResetModel()
+
+
 class EvidenceTypeModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -317,7 +339,13 @@ class Model(BlastTaskModel):
     concordance_path = Property(Path, Path())
     output_path = Property(Path, Path())
 
-    concordances = Property(ConcordanceModel, Instance)
+    individuals = Property(IndividualListModel, Instance)
+    conspecific_constraints_text = Property(str, "")
+    heterospecific_constraints_text = Property(str, "")
+    conspecific_constraints_enabled = Property(bool, False)
+    heterospecific_constraints_enabled = Property(bool, False)
+
+    concordances = Property(ConcordanceTableModel, Instance)
     evidence_types = Property(EvidenceTypeModel, Instance)
     bool_only = Property(bool, True)
 
@@ -341,6 +369,9 @@ class Model(BlastTaskModel):
         self.subtask_init.start(process.initialize)
 
     def _handle_open_results(self, results: ReportDone):
+        individuals_list = results.result.individuals_list
+        self.individuals.set_names(individuals_list)
+
         concordance_data = results.result.concordance_data
 
         checked_dict = {
@@ -379,11 +410,59 @@ class Model(BlastTaskModel):
     def start(self):
         super().start()
 
+        try:
+            conspecific_constraints = self._parse_conspecific_constraints_list()
+        except Exception as e:
+            note = Notification.Fail("Conspecific constraints error: \n" + str(e))
+            self.notification.emit(note)
+            self.busy = False
+            return
+
+        try:
+            heterospecific_constraints = self._parse_heterospecific_constraints_list()
+        except Exception as e:
+            note = Notification.Fail("Heterospecific constraint error: \n" + str(e))
+            self.notification.emit(note)
+            self.busy = False
+            return
+
         self.exec(
             process.execute,
             concordance_path=self.concordance_path,
             output_path=self.output_path,
+            conspecific_constraints=conspecific_constraints,
+            heterospecific_constraints=heterospecific_constraints,
         )
+
+    def _parse_constraints_list(self, text: str) -> list[list[str]]:
+        groups = []
+        group = set()
+        for line in str(text + "\n\n").splitlines():
+            name = line.strip()
+            if name:
+                if name not in self.individuals.names_set:
+                    raise Exception(f"Individual not found: {repr(name)}")
+                if name in group:
+                    raise Exception(
+                        f"Individual appears twice in the same group: {repr(name)}"
+                    )
+                group.add(name)
+            elif group:
+                if len(group) < 2:
+                    raise Exception("Groups must have at least two individuals")
+                groups.append(list(group))
+                group = []
+        return groups
+
+    def _parse_conspecific_constraints_list(self) -> list[list[str]]:
+        if self.conspecific_constraints_enabled:
+            return self._parse_constraints_list(self.conspecific_constraints_text)
+        return []
+
+    def _parse_heterospecific_constraints_list(self) -> list[list[str]]:
+        if self.heterospecific_constraints_enabled:
+            return self._parse_constraints_list(self.heterospecific_constraints_text)
+        return []
 
     def onDone(self, report: ReportDone):
         self.report_results.emit(self.task_name, report.result)

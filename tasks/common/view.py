@@ -540,7 +540,7 @@ class OptionCard(Card):
         title = QtWidgets.QCheckBox(" " + text)
         title.setStyleSheet("""font-size: 16px;""")
         title.toggled.connect(self.toggled)
-        title.setFixedWidth(150)
+        title.setFixedWidth(250)
 
         label = QtWidgets.QLabel(description)
 
