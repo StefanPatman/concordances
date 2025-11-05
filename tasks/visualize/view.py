@@ -8,6 +8,18 @@ from itaxotools.taxi_gui.view.tasks import TaskView
 from .types import Results
 
 
+class InstantTooltipTextItem(QtWidgets.QGraphicsTextItem):
+    def __init__(self, text: str, tooltip: str, font: QtGui.QFont, parent=None):
+        super().__init__(text, parent)
+        self.setFont(font)
+        self.setToolTip(tooltip)
+        self.setAcceptHoverEvents(True)
+
+    def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent):
+        QtWidgets.QToolTip.showText(event.screenPos(), self.toolTip())
+        super().hoverEnterEvent(event)
+
+
 class Visualizer(QtWidgets.QGraphicsView):
     _color_list = [
         QtGui.QColor("#e6194b"),  # red
@@ -125,12 +137,12 @@ class Visualizer(QtWidgets.QGraphicsView):
 
         return y
 
-    def _draw_column_title(self, col_x: float, y: float, title: str):
-        title_item = QtWidgets.QGraphicsTextItem(title)
+    def _draw_column_title(self, col_x: float, y: float, title: str, index: int):
+        display_letter = chr(ord("A") + index)
         font = QtGui.QFont(self._font)
-        font.setPointSize(self._font.pointSize() + 2)
-        font.setUnderline(True)
-        title_item.setFont(font)
+        font.setPointSize(self._font.pointSize() + 4)
+        title_item = InstantTooltipTextItem(display_letter, title, font)
+
         text_rect = title_item.boundingRect()
         title_item.setPos(
             col_x + self.col_width / 2 - text_rect.center().x(), y - self.padding_y
@@ -151,14 +163,14 @@ class Visualizer(QtWidgets.QGraphicsView):
         )
         col_x = max_name_width + self.padding_x
 
-        for col_name in subset_table:
-            subset = subset_table[col_name]
-            scores = score_table.get(col_name, {})
+        for index, spartition in enumerate(subset_table):
+            subset = subset_table[spartition]
+            scores = score_table.get(spartition, {})
 
             self._draw_individual_list(individual_list)
             self._draw_spartition_column(col_x, individual_list, subset)
             y = self._draw_scores(col_x, 0, scores)
-            self._draw_column_title(col_x, y, col_name)
+            self._draw_column_title(col_x, y, spartition, index)
 
             col_x += self.col_width + self.col_spacing
 
