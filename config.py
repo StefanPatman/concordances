@@ -2,6 +2,7 @@ from resources import icons, pixmaps
 from tasks import (
     profile,
     score,
+    visualize,
 )
 
 title = "Concordance Pilot"
@@ -13,4 +14,4 @@ dashboard = "constrained"
 show_open = True
 show_save = False
 
-tasks = [profile, score]
+tasks = [profile, score, visualize]

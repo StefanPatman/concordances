@@ -7,6 +7,7 @@ from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.tasks.common.view import ProgressCard
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
+from itaxotools.taxi_gui.utility import human_readable_seconds
 
 from ..common.widgets import GrowingTextEdit
 from ..common.view import (
@@ -15,6 +16,9 @@ from ..common.view import (
     PathSelector,
     OptionCard,
 )
+from ..common.types import Results
+from ..visualize.model import Model as VisualizeModel
+
 from . import long_description, pixmap_medium, title
 from .model import BooleanFilterProxyModel
 
@@ -520,3 +524,35 @@ class View(BlastTaskView):
         if not filename:
             return
         self.object.open(Path(filename))
+
+    def report_results(self, task_name: str, results: Results):
+        msgBox = QtWidgets.QMessageBox(self.window())
+        msgBox.setWindowModality(QtCore.Qt.WindowModal)
+        msgBox.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint)
+        msgBox.setWindowTitle(app.config.title)
+        msgBox.setIcon(QtWidgets.QMessageBox.Information)
+        msgBox.setText(f"{task_name} completed successfully!")
+        msgBox.setInformativeText(
+            f"Time taken: {human_readable_seconds(results.seconds_taken)}."
+        )
+
+        msgBox.addButton("Ok", QtWidgets.QMessageBox.RejectRole)
+        msgBox.addButton("Visualize", QtWidgets.QMessageBox.AcceptRole)
+
+        self.window().msgShow(msgBox)
+
+        role = msgBox.buttonRole(msgBox.clickedButton())
+
+        match role:
+            case QtWidgets.QMessageBox.AcceptRole:
+                self.propagate_reults_to_model(VisualizeModel, results)
+            case QtWidgets.QMessageBox.RejectRole:
+                pass
+
+    def propagate_reults_to_model(self, klass, results: Results):
+        model_index = app.model.items.find_task(klass)
+        if model_index is None:
+            model_index = app.model.items.add_task(klass())
+        item = app.model.items.data(model_index, role=app.model.items.ItemRole)
+        item.object.open(results.output_path)
+        app.model.items.focus(model_index)
