@@ -151,6 +151,13 @@ class ConcordanceTableModel(QtCore.QAbstractTableModel):
             self.weights[id] = weight_dict[id]
         self.endInsertRows()
 
+    def get_weights(self) -> dict[str, float]:
+        return {
+            evidence_id: weight
+            for evidence_id, weight in self.weights.items()
+            if self.checked.get(evidence_id, False)
+        }
+
 
 class BooleanFilterProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(self, parent=None):
@@ -247,7 +254,7 @@ class EvidenceTypeModel(QtCore.QAbstractTableModel):
             elif col == 1:
                 return f"{self.weights[dtype]:.2f}"
             elif col == 2:
-                return "Weigh by number of variables"
+                return "Multiply by number of variables"
 
         if role == QtCore.Qt.CheckStateRole:
             if col == 2:
@@ -331,6 +338,12 @@ class EvidenceTypeModel(QtCore.QAbstractTableModel):
             self.checked[dtype] = checked_dict[dtype]
             self.weights[dtype] = weights_dict[dtype]
         self.endInsertRows()
+
+    def get_weights(self) -> dict[str, float]:
+        return self.weights
+
+    def get_behaviours(self) -> dict[str, bool]:
+        return self.checked
 
 
 class Model(BlastTaskModel):
@@ -430,6 +443,9 @@ class Model(BlastTaskModel):
             process.execute,
             concordance_path=self.concordance_path,
             output_path=self.output_path,
+            concordance_weights=self.concordances.get_weights(),
+            evidence_types_weights=self.evidence_types.get_weights(),
+            evidence_types_behaviours=self.evidence_types.get_behaviours(),
             conspecific_constraints=conspecific_constraints,
             heterospecific_constraints=heterospecific_constraints,
         )

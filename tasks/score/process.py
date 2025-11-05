@@ -41,17 +41,23 @@ def open_spart(path: Path):
 def execute(
     concordance_path: Path,
     output_path: Path,
+    concordance_weights: dict[str, float],
+    evidence_types_weights: dict[str, float],
+    evidence_types_behaviours: dict[str, bool],
     conspecific_constraints: list[list[str]],
     heterospecific_constraints: list[list[str]],
 ) -> Results:
     from itaxotools.spart_parser import Spart
 
+    print(f"{concordance_weights=}")
+    print(f"{evidence_types_weights=}")
+    print(f"{evidence_types_behaviours=}")
+    print(f"{conspecific_constraints=}")
+    print(f"{heterospecific_constraints=}")
+
     ts = perf_counter()
 
     spart = Spart.fromXML(concordance_path)
-
-    print(conspecific_constraints)
-    print(heterospecific_constraints)
 
     spart.toXML(output_path)
 
