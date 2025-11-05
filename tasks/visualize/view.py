@@ -20,6 +20,24 @@ class InstantTooltipTextItem(QtWidgets.QGraphicsTextItem):
         super().hoverEnterEvent(event)
 
 
+class RowOverlay(QtWidgets.QGraphicsRectItem):
+    def __init__(self, rect, parent=None):
+        super().__init__(rect, parent)
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
+        self.setPen(QtCore.Qt.NoPen)
+        self.setAcceptHoverEvents(True)
+
+    def hoverEnterEvent(self, event):
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 50)))
+        self.setPen(QtCore.Qt.NoPen)
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        self.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
+        self.setPen(QtCore.Qt.NoPen)
+        super().hoverLeaveEvent(event)
+
+
 class Visualizer(QtWidgets.QGraphicsView):
     _color_list = [
         QtGui.QColor("#e6194b"),  # red
@@ -59,7 +77,7 @@ class Visualizer(QtWidgets.QGraphicsView):
         self.y_step = 24
         self.padding_x = 40
         self.padding_y = 30
-        self.col_width = 40
+        self.col_width = 60
         self.col_spacing = 20
 
     def _get_color_for_group(self, group: str) -> QtGui.QColor:
@@ -115,7 +133,9 @@ class Visualizer(QtWidgets.QGraphicsView):
             score_label_items.append(label_item)
 
             if isinstance(value, float):
-                value_item = QtWidgets.QGraphicsTextItem(f"{value:.2f}")
+                value_item = QtWidgets.QGraphicsTextItem(f"{value:.3f}")
+            elif isinstance(value, int):
+                value_item = QtWidgets.QGraphicsTextItem(str(value))
             elif isinstance(value, bool):
                 value_item = QtWidgets.QGraphicsTextItem(
                     "\u2713" if value else "\u2717"
@@ -149,6 +169,13 @@ class Visualizer(QtWidgets.QGraphicsView):
         )
         self._scene.addItem(title_item)
 
+    def _add_row_hover_overlays(self, individual_list: list[str], total_width: float):
+        for row_index, _ in enumerate(individual_list):
+            rect = QtCore.QRectF(0, row_index * self.y_step, total_width, self.y_step)
+            overlay = RowOverlay(rect)
+
+            self._scene.addItem(overlay)
+
     def set_data(
         self,
         individual_list: list[str],
@@ -163,11 +190,16 @@ class Visualizer(QtWidgets.QGraphicsView):
         )
         col_x = max_name_width + self.padding_x
 
+        self._draw_individual_list(individual_list)
+        total_overlay_width = col_x + len(subset_table) * (
+            self.col_width + self.col_spacing
+        )
+        self._add_row_hover_overlays(individual_list, total_overlay_width)
+
         for index, spartition in enumerate(subset_table):
             subset = subset_table[spartition]
             scores = score_table.get(spartition, {})
 
-            self._draw_individual_list(individual_list)
             self._draw_spartition_column(col_x, individual_list, subset)
             y = self._draw_scores(col_x, 0, scores)
             self._draw_column_title(col_x, y, spartition, index)

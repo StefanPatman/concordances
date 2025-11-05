@@ -111,6 +111,7 @@ def execute(
             spartition,
             CSU=score,
             CSW=score / combinations,
+            CSWm=score / combinations / len(subsets),
             CSWC=score_c / combinations,
         )
 

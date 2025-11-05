@@ -1,6 +1,7 @@
 from pathlib import Path
 from time import perf_counter
 from collections import defaultdict
+from math import comb
 
 from .types import Results
 
@@ -54,9 +55,14 @@ def execute(
                     return False
             return value
 
+        n = len(spart.getSpartitionSubsets(spartition))
+
+        score_table[spartition]["Nsub"] = n
+        score_table[spartition]["Ncomp"] = comb(n, 2)
         score_table[spartition]["asap"] = get_score_float(data, "spartitionScore")
         score_table[spartition]["CSU"] = get_score_float(data, "CSU")
         score_table[spartition]["CSW"] = get_score_float(data, "CSW")
+        score_table[spartition]["CSWm"] = get_score_float(data, "CSWm")
         score_table[spartition]["CSWC"] = get_score_float(data, "CSWC")
         score_table[spartition]["CC"] = get_score_bool(data, "CC")
         score_table[spartition]["HC"] = get_score_bool(data, "HC")
