@@ -65,11 +65,31 @@ def execute(
         subsets = spart.getSpartitionSubsets(spartition)
         if len(subsets) < 2:
             continue
+
         score: int = 0
         score_c: float = 0.0
         support_table: dict[tuple[int, int], float] = defaultdict(lambda: 0.0)
         support_table_cap: dict[tuple[int, int], int] = defaultdict(lambda: 0)
         combinations = math.comb(len(subsets), 2)
+        evidence_types_totals: dict[str, int] = defaultdict(lambda: 0)
+        concordance_evidence_types: dict[str, str] = {}
+        final_concordance_weights: dict[str, float] = {}
+
+        for concordance in spart.getSpartitionConcordances(spartition):
+            if concordance not in concordance_weights:
+                continue
+            data = spart.getConcordanceData(spartition, concordance)
+            evidence_type = data["evidenceType"]
+            concordance_evidence_types[concordance] = evidence_type
+            evidence_types_totals[evidence_type] += concordance_weights[concordance]
+
+        for concordance, weight in concordance_weights.items():
+            evidence_type = concordance_evidence_types[concordance]
+            weight *= evidence_types_weights[evidence_type]
+            if not evidence_types_behaviours[evidence_type]:
+                weight /= evidence_types_totals[evidence_type]
+            final_concordance_weights[concordance] = weight
+
         for concordance in spart.getSpartitionConcordances(spartition):
             if concordance not in concordance_weights:
                 continue
@@ -78,6 +98,7 @@ def execute(
                 sub_b = limit["subsetnumberB"]
                 sub_a, sub_b = sorted([sub_a, sub_b])
                 support = 1.0 if limit["concordanceSupport"] else 0.0
+                support *= final_concordance_weights[concordance]
                 score += support
                 support_table[(sub_a, sub_b)] += support
                 support_table_cap[(sub_a, sub_b)] += 1
