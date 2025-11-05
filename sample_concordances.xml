@@ -63,7 +63,6 @@
 				</concordance>
 				<concordance evidenceName="co-occurence boolean" evidenceType="Geography" evidenceDataType="Continuous" evidenceDiscriminationType="Gap" evidenceDiscriminationDataType="Boolean">
 					<concordantlimit subsetnumberA="1" subsetnumberB="2" NIndividualsSubsetA="1" NIndividualsSubsetB="2" concordanceSupport="No"/>
-					<concordantlimit subsetnumberA="1" subsetnumberB="3" NIndividualsSubsetA="1" NIndividualsSubsetB="3" concordanceSupport="No"/>
 					<concordantlimit subsetnumberA="1" subsetnumberB="4" NIndividualsSubsetA="1" NIndividualsSubsetB="4" concordanceSupport="No"/>
 					<concordantlimit subsetnumberA="2" subsetnumberB="3" NIndividualsSubsetA="2" NIndividualsSubsetB="3" concordanceSupport="Yes"/>
 					<concordantlimit subsetnumberA="2" subsetnumberB="4" NIndividualsSubsetA="2" NIndividualsSubsetB="4" concordanceSupport="No"/>

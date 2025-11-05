@@ -1,5 +1,7 @@
 from pathlib import Path
 from time import perf_counter
+import math
+from collections import defaultdict
 
 from ..common.types import Results
 from .types import OpenResults
@@ -58,6 +60,71 @@ def execute(
     ts = perf_counter()
 
     spart = Spart.fromXML(concordance_path)
+
+    for spartition in spart.getSpartitions():
+        subsets = spart.getSpartitionSubsets(spartition)
+        if len(subsets) < 2:
+            continue
+        score: int = 0
+        score_c: float = 0.0
+        support_table: dict[tuple[int, int], float] = defaultdict(lambda: 0.0)
+        support_table_cap: dict[tuple[int, int], int] = defaultdict(lambda: 0)
+        combinations = math.comb(len(subsets), 2)
+        for concordance in spart.getSpartitionConcordances(spartition):
+            if concordance not in concordance_weights:
+                continue
+            for limit in spart.getConcordantLimits(spartition, concordance):
+                sub_a = limit["subsetnumberA"]
+                sub_b = limit["subsetnumberB"]
+                sub_a, sub_b = sorted([sub_a, sub_b])
+                support = 1.0 if limit["concordanceSupport"] else 0.0
+                score += support
+                support_table[(sub_a, sub_b)] += support
+                support_table_cap[(sub_a, sub_b)] += 1
+        for limit in support_table:
+            score_c += support_table[limit] * (
+                support_table_cap[limit] / len(concordance_weights)
+            )
+
+        spart.addSpartitionData(
+            spartition,
+            CSU=score,
+            CSW=score / combinations,
+            CSWC=score_c / combinations,
+        )
+
+        def check_conspecific() -> bool:
+            for subset in spart.getSpartitionSubsets(spartition):
+                subset_individuals = spart.getSubsetIndividuals(spartition, subset)
+                for group_individuals in conspecific_constraints:
+                    for individual in group_individuals:
+                        if individual not in subset_individuals:
+                            continue
+                        for other in group_individuals:
+                            if other == individual:
+                                continue
+                            if other not in subset_individuals:
+                                return False
+            return True
+
+        def check_heterospecific() -> bool:
+            for subset in spart.getSpartitionSubsets(spartition):
+                subset_individuals = spart.getSubsetIndividuals(spartition, subset)
+                for group_individuals in heterospecific_constraints:
+                    for individual in group_individuals:
+                        if individual not in subset_individuals:
+                            continue
+                        for other in group_individuals:
+                            if other == individual:
+                                continue
+                            if other in subset_individuals:
+                                return False
+            return True
+
+        spart.addSpartitionData(spartition, CC="True" if check_conspecific() else "No")
+        spart.addSpartitionData(
+            spartition, HC="True" if check_heterospecific() else "No"
+        )
 
     spart.toXML(output_path)
 
