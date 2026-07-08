@@ -60,6 +60,14 @@ def execute(
         score_table[spartition]["Nsub"] = n
         score_table[spartition]["Ncomp"] = comb(n, 2)
         score_table[spartition]["asap"] = get_score_float(data, "spartitionScore")
+        score_table[spartition]["BayesPP"] = get_score_float(data, "BayesPP")
+        score_table[spartition]["BIC"] = get_score_float(data, "BIC")
+        score_table[spartition]["AIC"] = get_score_float(data, "AIC")
+        score_table[spartition]["BayesMean"] = get_score_float(data, "BayesMean")
+        score_table[spartition]["BayesMin"] = get_score_float(data, "BayesMin")
+        score_table[spartition]["BayesLogFactor"] = get_score_float(
+            data, "BayesLogFactor"
+        )
         score_table[spartition]["CSU"] = get_score_float(data, "CSU")
         score_table[spartition]["CSW"] = get_score_float(data, "CSW")
         score_table[spartition]["CSWm"] = get_score_float(data, "CSWm")
