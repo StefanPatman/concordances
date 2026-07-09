@@ -213,7 +213,7 @@ def process_haplostats(spart: Spart, sequences: Sequences, label: str = ""):
                 subsetnumberB=subset_b,
                 NIndividualsSubsetA=numbers[subset_a],
                 NIndividualsSubsetB=numbers[subset_b],
-                concordanceSupport=bool(common),
+                concordanceSupport=not bool(common),
             )
 
         kwargs = dict(
@@ -238,7 +238,7 @@ def process_haplostats(spart: Spart, sequences: Sequences, label: str = ""):
                 subsetnumberB=subset_b,
                 NIndividualsSubsetA=numbers[subset_a],
                 NIndividualsSubsetB=numbers[subset_b],
-                concordanceSupport=bool(common),
+                concordanceSupport=not bool(common),
             )
 
 
