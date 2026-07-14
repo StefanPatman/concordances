@@ -5,7 +5,7 @@ from pathlib import Path
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.view.tasks import TaskView
 
-from .types import Results
+from .types import Results, Separator
 
 
 class InstantTooltipTextItem(QtWidgets.QGraphicsTextItem):
@@ -126,6 +126,13 @@ class Visualizer(QtWidgets.QGraphicsView):
         score_value_items = []
 
         for score, value in reversed(scores.items()):
+            if isinstance(score, Separator):
+                line_y = y + self.y_step / 2
+                pen = QtGui.QPen(QtGui.QColor("#999999"), 1)
+                self._scene.addLine(0, line_y, col_x + self.col_width, line_y, pen)
+                y -= self.y_step
+                continue
+
             label_item = QtWidgets.QGraphicsTextItem(score)
             label_item.setFont(self._font)
             label_item.setPos(0, y)

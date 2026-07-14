@@ -74,6 +74,15 @@ def execute(
     # Higher λ = stronger preference for fewer species.
     LAMBDA = 0.1
 
+    # Strength of the size-based neutral chance model used by BayesMeanCC.
+    # A pair of subsets with n_a, n_b individuals is assigned a chance
+    # concordance rate 1 / (1 + n_a·n_b / (β·N)): smaller subsets look
+    # "distinct" by chance more easily, so the mean chance rate rises with the
+    # number of subsets. Smaller β = higher assumed chance rate = stronger
+    # discount. Tune to taste, or replace θ0 with an empirical estimate from
+    # reshuffled partitions (see SCORES.md).
+    CHANCE_BETA = 0.05
+
     # Collected per-spartition for BayesPP normalization after the main loop.
     bayes_pp_data: list[tuple[str, float]] = []
 
@@ -90,6 +99,9 @@ def execute(
         weighted_total_table: dict[tuple[int, int], float] = defaultdict(lambda: 0.0)
         # accumulated log Bayes factor per pair
         log_bf_table: dict[tuple[int, int], float] = defaultdict(lambda: 0.0)
+        # weight-weighted sum of the neutral chance rate, over every test
+        # (line × pair), for BayesMeanCC
+        chance_weighted: float = 0.0
         combinations = math.comb(len(subsets), 2)
         evidence_types_totals: dict[str, int] = defaultdict(lambda: 0)
         concordance_evidence_types: dict[str, str] = {}
@@ -131,6 +143,11 @@ def execute(
                 weighted_total_table[(sub_a, sub_b)] += weight
                 log_bf_table[(sub_a, sub_b)] += weight * (
                     LOG_BF_SUPPORT if concordant else LOG_BF_NO_SUPPORT
+                )
+                n_a = limit["NIndividualsSubsetA"]
+                n_b = limit["NIndividualsSubsetB"]
+                chance_weighted += weight * (
+                    1.0 / (1.0 + (n_a * n_b) / (CHANCE_BETA * N))
                 )
         for limit in support_table:
             score_c += support_table[limit] * (
@@ -202,6 +219,36 @@ def execute(
             K = len(subsets)
             p = (S + 0.5) / (E + 1.0)
             log_L = S * math.log(p) + (E - S) * math.log(1.0 - p)
+
+            # BayesMeanC (Fix 1): composition/coverage-invariant "corrected
+            # BayesMean". A single Jeffreys Beta(0.5, 0.5) posterior on the
+            # pooled concordance rate p_hat, with prior strength E (evidence
+            # lines, independent of K) instead of the per-pair coverage that
+            # makes plain BayesMean drift with subset count. Any two partitions
+            # with the same weighted concordance proportion get an identical
+            # score, whatever their number or composition of subsets. Neutral
+            # value (p_hat=0.5): 0.5. Higher is better.
+            bayes_mean_c = (S + 0.5) / (E + 1.0)
+
+            # BayesMeanCC (Fix 2): BayesMeanC additionally corrected for the
+            # chance that more (hence smaller) subsets score "yes" more readily.
+            # theta_0 is the weighted mean neutral chance rate; it rises with K.
+            # kappa is the excess concordance over chance (Cohen's-kappa form),
+            # then Jeffreys-smoothed exactly like BayesMeanC. Perfect support
+            # (p_hat=1) always gives kappa=1, but partial support is discounted
+            # more heavily the larger K is. Higher is better; 0.5/(E+1) means
+            # "no better than chance".
+            theta_0 = chance_weighted / weighted_total if weighted_total else 0.0
+            kappa = (
+                max(0.0, (p_hat - theta_0) / (1.0 - theta_0)) if theta_0 < 1.0 else 0.0
+            )
+            bayes_mean_cc = (kappa * E + 0.5) / (E + 1.0)
+
+            spart.addSpartitionData(
+                spartition,
+                BayesMeanC=bayes_mean_c,
+                BayesMeanCC=bayes_mean_cc,
+            )
 
             # BIC / AIC: lower is better.
             log_N = math.log(N) if N > 1 else 1.0

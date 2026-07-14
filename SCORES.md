@@ -83,9 +83,65 @@ average of these confidences across all boundaries. The geometric average is str
 badly-supported boundary drags the whole partition down.
 
 - Perfect case: every boundary reaches the same confidence (about 0.95 with 10 lines), so
-  the average is ~0.95 for both 3 and 6 subsets. **Passes.**
+  the average is ~0.95 for both 3 and 6 subsets. **Passes — but only when coverage is even.**
 - The exact ceiling depends on how many lines of evidence you have, not on subset count.
 - Higher is better; 0.5 means "no information".
+- **Caveat (why `BayesMeanC` exists).** The "passes" result above assumes *every* line of
+  evidence tested *every* boundary. Real evidence is patchy: some boundaries are tested by
+  many lines, others by only one or two. A boundary's confidence depends on how many lines
+  tested it (more tests → confidence further from 0.5), so when partitions differ in how
+  that coverage is spread across boundaries — which changes with the number and composition
+  of subsets — the geometric average moves even when the *verdicts* are identical. In
+  practice two all-"yes" partitions that differ only in subset count get slightly different
+  BayesMean values, with the larger split usually scoring a touch higher. `BayesMeanC` below
+  removes this artefact.
+
+### BayesMeanC — corrected BayesMean (coverage- and composition-invariant)
+The fix for the caveat above. Instead of averaging a separate confidence per boundary — each
+with its own, coverage-dependent amount of shrinkage — it pools **all** the yes/no votes into
+one overall concordance rate and forms a *single* confidence from it. The shrinkage is tied
+to the number of lines of evidence (which every partition shares), not to how many pairs
+happen to exist, so it no longer leaks subset-count information. Concretely: confidence =
+(rate × E + 0.5) / (E + 1), where *rate* is the weighted fraction of "yes" votes and *E* is
+the total evidence weight.
+
+- **The fairness test, exactly.** Any two partitions with the same weighted proportion of
+  "yes" votes get an **identical** score, whatever their number or composition of subsets —
+  not "about the same", identical. All-"yes" → (E + 0.5)/(E + 1); all-"no" → 0.5/(E + 1);
+  reshuffling membership at fixed proportion changes nothing.
+- Worked example on real data: ten all-"yes" partitions of the *Lygodactylus* set (K from 9
+  to 21) score `BayesMean` between 0.906 and 0.916, but all score `BayesMeanC` = 0.972.
+- Trade-off: it gives up BayesMean's "one weak boundary drags the whole thing down"
+  behaviour — that weakest-link view now lives only in `BayesMin`. If you want strictness,
+  read `BayesMeanC` and `BayesMin` together.
+- Higher is better; 0.5 means "no information".
+
+### BayesMeanCC — chance-corrected BayesMean
+`BayesMeanC` makes equal evidence score equally regardless of subset count. But there is a
+second, subtler bias: with more (therefore smaller) subsets, a boundary is more likely to
+draw a "yes" *by chance alone* — small groups are easier to tell apart even when nothing real
+separates them. `BayesMeanCC` discounts that. It first estimates a **chance rate** — how
+often the evidence would say "yes" if the subsets were meaningless — and this chance rate
+rises with the number of subsets. It then measures how far the observed support sits *above*
+chance (the classic "observed − expected, rescaled" / Cohen's-kappa idea) and feeds that
+excess through the same smoothing as `BayesMeanC`.
+
+- The chance rate comes from a simple, tunable model on subset sizes: a boundary between two
+  subsets of sizes *nₐ* and *n_b* is assigned a chance-"yes" probability
+  1 / (1 + nₐ·n_b / (β·N)), so small subsets → chance near 1, large subsets → chance near 0,
+  and the average chance rate climbs with subset count. `β` (`CHANCE_BETA`, default 0.05)
+  sets how strong the discount is. For a more rigorous null, estimate this chance rate
+  empirically from **reshuffled partitions** (same subset sizes, randomised membership,
+  evidence recomputed) instead of the size model — the pipeline already emits such
+  partitions.
+- Perfect case: all-"yes" still scores the same at any subset count (support is maximal, so
+  it is always the full amount above chance). The discount only bites on **partial** support,
+  and bites harder the more subsets there are.
+- Worked example on real, mixed-verdict data: as K grows the gap between `BayesMeanC` and
+  `BayesMeanCC` widens — at K=9 the score drops from 0.46 to 0.39, at K=17 from 0.50 to 0.33,
+  at K=19 from 0.51 to 0.34 — i.e. large splits are penalised for support that chance could
+  have produced.
+- Higher is better; 0.5/(E + 1) means "no better than chance".
 
 ### BayesMin — confidence of the weakest boundary
 Same per-boundary confidence as BayesMean, but instead of averaging it reports the
@@ -169,7 +225,9 @@ These just check the partition against prior knowledge you supply, and report ye
 | CSU | higher | rewards more subsets (raw total) | No — favours splitting |
 | CSW | higher | neutral (average per boundary) | **Yes** |
 | CSWC | higher | neutral, plus coverage adjustment | **Yes** |
-| BayesMean | higher | neutral (average confidence) | **Yes** |
+| BayesMean | higher | neutral (average confidence) | Yes *only under even coverage* |
+| BayesMeanC | higher | neutral (pooled confidence) | **Yes — exactly, at any coverage** |
+| BayesMeanCC | higher | discounts chance from more subsets | Yes when support is perfect; discounts partial support at high K |
 | BayesMin | higher | neutral (weakest boundary) | **Yes** |
 | BayesLogFactor | higher | neutral (evidence vs random) | **Yes** |
 | BIC | **lower** | penalises more subsets (strong) | No — by design |
@@ -184,3 +242,11 @@ building in a preference for fewer species. If your goal is to have the "right" 
 subsets rise to the top automatically, a Family 3 score is what does that work; if you
 want to judge evidence quality and decide on subset count yourself, a Family 2 score keeps
 those two questions separate.
+
+**Where the two corrected scores fit.** `BayesMeanC` is the strict Family 2 member: use it
+when you want "how good is the evidence" with the subset-count leakage of plain `BayesMean`
+removed entirely. `BayesMeanCC` sits between the families — it stays fair when the evidence
+is perfect, but where support is only partial it discounts the easy "yes" votes that extra
+subsets buy by chance. It is a lighter, chance-based alternative to the Family 3 penalties:
+BIC/AIC/BayesPP penalise subset count *always* (even with perfect evidence), whereas
+`BayesMeanCC` penalises it *only to the extent the support looks like chance*.

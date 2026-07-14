@@ -311,14 +311,14 @@ def process_morphometrics(
             spart.addConcordance(spartition, concordance_label_s, **kwargs)
 
         kwargs = dict(
-            evidenceType="Morphology",
+            evidenceType="Morphosubset_datalogy",
             evidenceDataType="Continuous",
             evidenceDiscriminationType="Gap",
             evidenceDiscriminationDataType="Continuous",
         )
         spart.addConcordance(spartition, concordance_label_g, **kwargs)
 
-        k = math.comb(len(subset_data), 2)
+        k = math.comb(len(), 2)
 
         for subset_a, subset_b in combinations(subset_data.keys(), 2):
             if len(subset_data[subset_a]) < 2:
