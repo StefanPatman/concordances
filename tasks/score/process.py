@@ -115,8 +115,8 @@ def execute(
             concordance_evidence_types[concordance] = evidence_type
             evidence_types_totals[evidence_type] += concordance_weights[concordance]
 
-        for concordance, weight in concordance_weights.items():
-            evidence_type = concordance_evidence_types[concordance]
+        for concordance, evidence_type in concordance_evidence_types.items():
+            weight = concordance_weights[concordance]
             weight *= evidence_types_weights[evidence_type]
             if not evidence_types_behaviours[evidence_type]:
                 weight /= evidence_types_totals[evidence_type]

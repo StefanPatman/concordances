@@ -100,6 +100,79 @@ def plan_new_partitions(
     return op_samples, recipes
 
 
+Subsets = list[list[str]]
+
+
+def choose_operation(remaining: dict[str, int], rng: random.Random) -> str:
+    """Pick the next operation at random, weighted by how many of each remain.
+
+    Weighting by the remaining counts consumes each operation at a rate
+    proportional to its total, so the rarer ones are spread across the run
+    instead of being exhausted early.
+    """
+    operations = [name for name, count in remaining.items() if count > 0]
+    weights = [remaining[name] for name in operations]
+    return rng.choices(operations, weights=weights, k=1)[0]
+
+
+def split_once(subsets: Subsets, rng: random.Random) -> bool:
+    """Split a random subset (with >= 2 individuals) at a random point."""
+    candidates = [i for i, members in enumerate(subsets) if len(members) >= 2]
+    if not candidates:
+        return False
+
+    members = subsets[rng.choice(candidates)]
+    rng.shuffle(members)
+    cut = rng.randint(1, len(members) - 1)
+    subsets[subsets.index(members)] = members[:cut]
+    subsets.append(members[cut:])
+    return True
+
+
+def merge_once(subsets: Subsets, rng: random.Random) -> bool:
+    """Merge two random subsets into one."""
+    if len(subsets) < 2:
+        return False
+
+    i, j = rng.sample(range(len(subsets)), 2)
+    merged = subsets[i] + subsets[j]
+    for index in sorted((i, j), reverse=True):
+        subsets.pop(index)
+    subsets.append(merged)
+    return True
+
+
+def swap_once(subsets: Subsets, rng: random.Random) -> bool:
+    """Swap two random individuals, regardless of which subset they are in."""
+    positions = [
+        (si, ii) for si, members in enumerate(subsets) for ii in range(len(members))
+    ]
+    if len(positions) < 2:
+        return False
+
+    (sa, ia), (sb, ib) = rng.sample(positions, 2)
+    subsets[sa][ia], subsets[sb][ib] = subsets[sb][ib], subsets[sa][ia]
+    return True
+
+
+OPERATIONS = {"split": split_once, "merge": merge_once, "swap": swap_once}
+
+
+def apply_recipe(
+    base_subsets: Subsets, recipe: dict[str, int], rng: random.Random
+) -> Subsets:
+    """Apply a recipe's operations, in random order, to a copy of the subsets."""
+    subsets = [list(members) for members in base_subsets]
+    remaining = {name: recipe.get(name, 0) for name in OPERATIONS}
+
+    while sum(remaining.values()) > 0:
+        name = choose_operation(remaining, rng)
+        OPERATIONS[name](subsets, rng)
+        remaining[name] -= 1
+
+    return subsets
+
+
 def initialize():
     import itaxotools
 
@@ -147,6 +220,16 @@ def execute(
 
     spart = Spart.fromXML(input_path)
     spartitions = spart.getSpartitions()
+    used_labels = set(spartitions)
+
+    def unique_label(base: str) -> str:
+        label = base
+        suffix = 2
+        while label in used_labels:
+            label = f"{base}_{suffix}"
+            suffix += 1
+        used_labels.add(label)
+        return label
 
     print(f"Spart file: {input_path.name}")
     print(f"Selected partitions: {len(selected_partitions)}")
@@ -174,16 +257,33 @@ def execute(
             print(
                 f"  {name}: {samples} (target {operation_totals[name]}, sum {sum(samples)})"
             )
-        print(f"  New partitions ({len(recipes)}):")
-        for index, recipe in enumerate(recipes, start=1):
-            if recipe:
-                summary = ", ".join(f"{name}={count}" for name, count in recipe.items())
-            else:
-                summary = "copy (no operations)"
-            print(f"    {index}: {summary}")
 
-    # TODO: apply each recipe to generate the new partitions, then write the
-    # result to output_path.
+        base_subsets = [
+            list(spart.getSubsetIndividuals(spartition, subset))
+            for subset in spart.getSpartitionSubsets(spartition)
+        ]
+
+        print(f"  New partitions ({len(recipes)}):")
+        for recipe in recipes:
+            subsets = apply_recipe(base_subsets, recipe, rng)
+            counts = "_".join(
+                f"{name}_{recipe.get(name, 0)}" for name in ("merge", "split", "swap")
+            )
+            label = unique_label(f"{spartition}_{counts}")
+
+            spart.addSpartition(label)
+            for number, members in enumerate(subsets, start=1):
+                spart.addSubset(label, str(number))
+                for individual in members:
+                    spart.addSubsetIndividual(label, str(number), individual)
+
+            summary = (
+                ", ".join(f"{name}={count}" for name, count in recipe.items())
+                or "copy (no operations)"
+            )
+            print(f"    {label}: {len(subsets)} subsets ({summary})")
+
+    spart.toXML(output_path)
 
     tf = perf_counter()
 
