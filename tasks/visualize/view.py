@@ -5,6 +5,7 @@ from pathlib import Path
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.view.tasks import TaskView
 
+from ..common.types import column_label
 from .types import Results, Separator
 
 
@@ -165,7 +166,7 @@ class Visualizer(QtWidgets.QGraphicsView):
         return y
 
     def _draw_column_title(self, col_x: float, y: float, title: str, index: int):
-        display_letter = chr(ord("A") + index)
+        display_letter = column_label(index)
         font = QtGui.QFont(self._font)
         font.setPointSize(self._font.pointSize() + 4)
         title_item = InstantTooltipTextItem(display_letter, title, font)

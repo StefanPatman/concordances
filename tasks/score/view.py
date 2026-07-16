@@ -17,6 +17,7 @@ from ..common.view import (
     OptionCard,
 )
 from ..common.types import Results
+from ..review.model import Model as ReviewModel
 from ..visualize.model import Model as VisualizeModel
 
 from . import long_description, pixmap_medium, title
@@ -537,6 +538,7 @@ class View(BlastTaskView):
         )
 
         msgBox.addButton("Ok", QtWidgets.QMessageBox.RejectRole)
+        msgBox.addButton("Review", QtWidgets.QMessageBox.ActionRole)
         msgBox.addButton("Visualize", QtWidgets.QMessageBox.AcceptRole)
 
         self.window().msgShow(msgBox)
@@ -546,6 +548,8 @@ class View(BlastTaskView):
         match role:
             case QtWidgets.QMessageBox.AcceptRole:
                 self.propagate_reults_to_model(VisualizeModel, results)
+            case QtWidgets.QMessageBox.ActionRole:
+                self.propagate_reults_to_model(ReviewModel, results)
             case QtWidgets.QMessageBox.RejectRole:
                 pass
 

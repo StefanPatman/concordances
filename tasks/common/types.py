@@ -5,6 +5,20 @@ from pathlib import Path
 from typing import NamedTuple
 
 
+def column_label(index: int) -> str:
+    """Spreadsheet-style short label for a spartition: A, B ... Z, AA, AB ...
+
+    Shared so a spartition gets the same handle wherever it is shown. Unlike a
+    bare chr(ord("A") + index), this keeps working past the 26th spartition.
+    """
+    label = ""
+    index += 1
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        label = chr(ord("A") + remainder) + label
+    return label
+
+
 class Results(NamedTuple):
     output_path: Path
     seconds_taken: float
