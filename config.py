@@ -5,6 +5,7 @@ from tasks import (
     score,
     visualize,
     review,
+    spartitioner,
 )
 
 title = "Concordance Pilot"
@@ -18,5 +19,5 @@ show_save = False
 
 tasks = [
     [profile, score, visualize],
-    [shuffle, review],
+    [shuffle, review, spartitioner],
 ]
