@@ -17,7 +17,11 @@ from ..common.view import (
     BatchSequenceSelector,
 )
 from ..common.types import Results
-from ..common.widgets import FloatPropertyLineEdit, IntPropertyLineEdit
+from ..common.widgets import (
+    ElidedLineEdit,
+    FloatPropertyLineEdit,
+    IntPropertyLineEdit,
+)
 from .types import SubstitutionModel
 from . import long_description, pixmap_medium, title
 from ..score.model import Model as ScoreModel
@@ -44,6 +48,61 @@ class PathFileOutSelector(PathSelector):
         if not filename:
             return
         self.selectedPath.emit(Path(filename))
+
+
+class PhylogenySelector(PathFileSelector):
+    modeChanged = QtCore.Signal(object)
+
+    def draw_main(self, text):
+        label = QtWidgets.QLabel(text + ":")
+        label.setStyleSheet("""font-size: 16px;""")
+        label.setMinimumWidth(150)
+
+        newick = QtWidgets.QRadioButton("From Newick tree")
+        nj = QtWidgets.QRadioButton("NJ from FASTA sequences")
+
+        group = RadioButtonGroup()
+        group.valueChanged.connect(self.modeChanged)
+        group.add(newick, False)
+        group.add(nj, True)
+
+        mode_layout = QtWidgets.QHBoxLayout()
+        mode_layout.addWidget(label)
+        mode_layout.addWidget(newick)
+        mode_layout.addWidget(nj, 1)
+        mode_layout.setSpacing(16)
+        self.addLayout(mode_layout)
+
+        spacer = QtWidgets.QLabel("Input file:")
+        spacer.setMinimumWidth(134)
+
+        field = ElidedLineEdit()
+        field.textDeleted.connect(self._handle_text_deleted)
+        field.setReadOnly(True)
+
+        browse = QtWidgets.QPushButton("Browse")
+        browse.clicked.connect(self._handle_browse)
+        browse.setFixedWidth(120)
+
+        path_layout = QtWidgets.QHBoxLayout()
+        path_layout.setContentsMargins(16, 0, 0, 0)
+        path_layout.addWidget(spacer)
+        path_layout.addWidget(field, 1)
+        path_layout.addWidget(browse)
+        path_layout.setSpacing(16)
+        self.addLayout(path_layout)
+
+        self.controls.label = label
+        self.controls.group = group
+        self.controls.field = field
+        self.controls.browse = browse
+
+    def setMode(self, nj_mode: bool):
+        self.controls.group.setValue(nj_mode)
+        if nj_mode:
+            self.set_placeholder_text("Aligned FASTA file, one sequence per individual")
+        else:
+            self.set_placeholder_text("Newick file containing a single tree")
 
 
 class OptionsSelector(Card):
@@ -276,6 +335,7 @@ class View(BlastTaskView):
         self.cards.coords = PathFileSelector("\u25E6  Coordinates", self)
         self.cards.morphometrics = PathFileSelector("\u25E6  Morphometrics", self)
         self.cards.sequences = BatchSequenceSelector("Haplotype Seqs")
+        self.cards.phylogeny = PhylogenySelector("◦  Phylogeny", self)
         self.cards.options = OptionsSelector(self)
 
         self.cards.asapy.set_placeholder_text("FASTA file to be processed by ASAPy")
@@ -352,6 +412,19 @@ class View(BlastTaskView):
         )
 
         self.cards.sequences.bind_batch_model(self.binder, object.sequence_paths)
+
+        self.binder.bind(
+            object.properties.phylogeny_nj_mode, self.cards.phylogeny.setMode
+        )
+        self.binder.bind(
+            self.cards.phylogeny.modeChanged, object.properties.phylogeny_nj_mode
+        )
+        self.binder.bind(
+            object.properties.phylogeny_path, self.cards.phylogeny.set_path
+        )
+        self.binder.bind(
+            self.cards.phylogeny.selectedPath, object.properties.phylogeny_path
+        )
 
         self.cards.options.controls.co_ocurrence_threshold.bind_property(
             object.properties.co_ocurrence_threshold

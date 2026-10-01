@@ -40,6 +40,9 @@ class Model(BlastTaskModel):
     morphometrics_path = Property(Path, Path())
     sequence_paths = Property(BatchSequenceModel, Instance)
 
+    phylogeny_nj_mode = Property(bool, False)
+    phylogeny_path = Property(Path, Path())
+
     co_ocurrence_threshold = Property(float, 5.0)
     morphometrics_threshold = Property(float, 0.05)
 
@@ -58,6 +61,7 @@ class Model(BlastTaskModel):
             self.properties.coord_path,
             self.properties.morphometrics_path,
             self.sequence_paths.properties.ready,
+            self.properties.phylogeny_path,
             self.properties.co_ocurrence_threshold,
             self.properties.morphometrics_threshold,
         ]:
@@ -78,6 +82,7 @@ class Model(BlastTaskModel):
                 self.coord_path != Path(),
                 self.morphometrics_path != Path(),
                 self.sequence_paths.ready,
+                self.phylogeny_path != Path(),
             )
         ):
             return False
@@ -103,6 +108,8 @@ class Model(BlastTaskModel):
             coord_path=self.path_or_none(self.coord_path),
             morphometrics_path=self.path_or_none(self.morphometrics_path),
             sequence_paths=self.sequence_paths.get_all_paths(),
+            phylogeny_path=self.path_or_none(self.phylogeny_path),
+            phylogeny_nj_mode=self.phylogeny_nj_mode,
             co_ocurrence_threshold=self.co_ocurrence_threshold,
             morphometrics_threshold=self.morphometrics_threshold,
             asapy_mode=self.asapy_mode,

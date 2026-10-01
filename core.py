@@ -8,6 +8,12 @@ from itertools import combinations, product
 from collections import defaultdict
 from pathlib import Path
 from scipy.stats import mannwhitneyu
+from Bio import Phylo
+from Bio.Align import MultipleSeqAlignment
+from Bio.Phylo.BaseTree import Tree
+from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import math
 
 
@@ -387,9 +393,87 @@ def process_morphometrics_multiple(
         process_morphometrics(spart, header, data[header], alpha)
 
 
+def build_nj_tree(sequences: Sequences) -> Tree:
+    calculator = DistanceCalculator("identity")
+    constructor = DistanceTreeConstructor(calculator, "nj")
+
+    try:
+        align = MultipleSeqAlignment(
+            [SeqRecord(Seq(x.seq.upper()), id=x.id) for x in sequences]
+        )
+    except ValueError as e:
+        raise ValueError(
+            "Cannot build NJ tree: sequences must be aligned and of equal length"
+        ) from e
+    return constructor.build_tree(align)
+
+
+def read_tree_from_newick(path: Path) -> Tree:
+    return Phylo.read(path, "newick")
+
+
+def write_tree_to_newick(tree: Tree, path: Path):
+    for clade in tree.get_nonterminals():
+        clade.name = None
+    Phylo.write(tree, path, "newick")
+
+
+def process_monophyly(spart: Spart, tree: Tree):
+    """Unrooted check: a subset is monophyletic if either the subset
+    or its complement forms a clade"""
+    clade_sets = [
+        frozenset(terminal.name for terminal in clade.get_terminals())
+        for clade in tree.find_clades()
+    ]
+    tips = frozenset(terminal.name for terminal in tree.get_terminals())
+
+    for spartition in spart.getSpartitions():
+        subset_individuals = {
+            subset: frozenset(spart.getSubsetIndividuals(spartition, subset))
+            for subset in spart.getSpartitionSubsets(spartition)
+        }
+
+        # ignore tips that are not part of the spartition and vice versa
+        known = tips & frozenset().union(*subset_individuals.values())
+        splits = {clade_set & known for clade_set in clade_sets}
+
+        concordance_label = "subset monophyly"
+
+        kwargs = dict(
+            evidenceType="Molecular",
+            evidenceDataType="Ordinal",
+            evidenceDiscriminationType="Boolean",
+            evidenceDiscriminationDataType="Boolean",
+        )
+        spart.addConcordance(spartition, concordance_label, **kwargs)
+
+        for subset, individuals in subset_individuals.items():
+            members = individuals & known
+            if not members:
+                continue
+
+            complement = known - members
+            monophyletic = members in splits or (
+                bool(complement) and complement in splits
+            )
+
+            spart.addConcordantLimit(
+                spartitionLabel=spartition,
+                concordanceLabel=concordance_label,
+                subsetnumberA=subset,
+                subsetnumberB=subset,
+                NIndividualsSubsetA=len(members),
+                NIndividualsSubsetB=len(members),
+                concordanceSupport=bool(monophyletic),
+            )
+
+
 def main():
     spart = Spart.fromXML("sample.xml")
     sequences = Sequences.fromPath("sample_sequences.fas", SequenceHandler.Fasta)
+    tree = build_nj_tree(Sequences.fromPath("sample.fas", SequenceHandler.Fasta))
+    write_tree_to_newick(tree, "out_tree.nwk")
+    process_monophyly(spart, tree)
     # latlons = read_latlons_from_spart("sample.xml")
     latlons = read_latlons_from_tabfile("sample_latlons.tab")
     morphometrics = read_morphometrics_from_tabfile("sample_morphometrics.tab")

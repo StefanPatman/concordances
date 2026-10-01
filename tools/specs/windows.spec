@@ -2,6 +2,8 @@
 
 from os import environ
 
+from PyInstaller.utils.hooks import collect_data_files
+
 NAME = environ.get('APP_NAME', None)
 FILENAME = environ.get('APP_FILENAME', None)
 ICON = environ.get('APP_ICON_ICO', None)
@@ -18,6 +20,8 @@ a = Analysis([SCRIPT],
                  ('../../logos', 'logos'),
                  ('../../core.py', '.'),
                  ('../../tasks', 'tasks'),
+                 *collect_data_files('Bio.Align'),
+                 *collect_data_files('Bio.Phylo'),
              ],
              hiddenimports=[
                 'itaxotools.haplostats',
@@ -30,6 +34,8 @@ a = Analysis([SCRIPT],
                 'scipy',
                 'scipy.stats',
                 'scipy._cyutility',
+                'Bio.Phylo',
+                'Bio.Phylo.TreeConstruction',
              ],
              hookspath=[],
              hooksconfig={},

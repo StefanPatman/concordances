@@ -63,6 +63,23 @@ def execute(
 
     N = len(spart.getIndividuals())
 
+    # Per-subset concordances (e.g. monophyly) are stored as self-pairs.
+    # All scores below are defined on pairs of distinct subsets, so these
+    # are excluded from scoring.
+    subset_concordances = set()
+    for spartition in spart.getSpartitions():
+        for concordance in spart.getSpartitionConcordances(spartition):
+            limits = spart.getConcordantLimits(spartition, concordance)
+            if limits and all(
+                limit["subsetnumberA"] == limit["subsetnumberB"] for limit in limits
+            ):
+                subset_concordances.add(concordance)
+    concordance_weights = {
+        concordance: weight
+        for concordance, weight in concordance_weights.items()
+        if concordance not in subset_concordances
+    }
+
     # Assumed concordance rate for a real boundary (H1) vs random (H0),
     # used for the log Bayes factor score.
     THETA_1 = 0.8
